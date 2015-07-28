@@ -85,20 +85,25 @@ old and new passwords before modifying any data.
 ENCRYPT
 -------
 
-*$ ansible-vault encrypt [options] FILE_1 [FILE_2, ..., FILE_N]
+*$ ansible-vault encrypt [options] [--read-from-stdin] FILE_1 [FILE_2, ..., FILE_N]
 
 The *encrypt* sub-command is used to encrypt pre-existing data files. As with the
-*rekey* command, you can specify multiple files in one command.
+*rekey* command, you can specify multiple files in one command. If the *--read-from-stdin*
+option is given, this command will read the data to be encrypted from stdin
+and write it encrypted to the data file, overwriting any existing contents.
 
 DECRYPT
 -------
 
-*$ ansible-vault decrypt [options] FILE_1 [FILE_2, ..., FILE_N]
+*$ ansible-vault decrypt [options] [--write-to-stdout] FILE_1 [FILE_2, ..., FILE_N]
 
 The *decrypt* sub-command is used to remove all encryption from data files. The files
 will be stored as plain-text YAML once again, so be sure that you do not run this
 command on data files with active passwords or other sensitive data. In most cases, 
 users will want to use the *edit* sub-command to modify the files securely.
+
+If the *--write-to-stdout* option is given, this command will write the decrypted
+data to stdout and leave the encrypted file unchanged.
 
 
 AUTHOR
