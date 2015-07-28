@@ -71,6 +71,12 @@ class VaultCLI(CLI):
 
         super(VaultCLI, self).run()
 
+        if self.options.read_from_stdin and self.action != "encrypt":
+            raise AnsibleOptionsError("--read-from-stdin may only be used when encrypting")
+
+        if self.options.write_to_stdout and self.action != "decrypt":
+            raise AnsibleOptionsError("--write-to-stdout may only be used when decrypting")
+
         if self.options.vault_password_file:
             # read vault_pass from a file
             self.vault_pass = CLI.read_vault_password_file(self.options.vault_password_file)
@@ -92,10 +98,10 @@ class VaultCLI(CLI):
 
         cipher = getattr(self.options, 'cipher', self.CIPHER)
         for f in self.args:
-            this_editor = VaultEditor(cipher, self.vault_pass, f)
+            this_editor = VaultEditor(cipher, self.vault_pass, f, write_to_stdout=self.options.write_to_stdout)
             this_editor.decrypt_file()
 
-        self.display.display("Decryption successful")
+        self.display.display("Decryption successful", stderr=True)
 
     def execute_edit(self):
 
@@ -113,10 +119,10 @@ class VaultCLI(CLI):
 
         cipher = getattr(self.options, 'cipher', self.CIPHER)
         for f in self.args:
-            this_editor = VaultEditor(cipher, self.vault_pass, f)
+            this_editor = VaultEditor(cipher, self.vault_pass, f, read_from_stdin=self.options.read_from_stdin)
             this_editor.encrypt_file()
 
-        self.display.display("Encryption successful")
+        self.display.display("Encryption successful", stderr=True)
 
     def execute_rekey(self):
         for f in self.args:
@@ -128,4 +134,4 @@ class VaultCLI(CLI):
             this_editor = VaultEditor(None, self.vault_pass, f)
             this_editor.rekey_file(new_password)
 
-        self.display.display("Rekey successful")
+        self.display.display("Rekey successful", stderr=True)

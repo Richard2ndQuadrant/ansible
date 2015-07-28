@@ -258,6 +258,10 @@ class CLI(object):
             parser.add_option('--vault-password-file', default=C.DEFAULT_VAULT_PASSWORD_FILE,
                 dest='vault_password_file', help="vault password file", action="callback",
                 callback=CLI.expand_tilde, type=str)
+            parser.add_option('--read-from-stdin', default=False, dest='read_from_stdin', action='store_true',
+                help="read data to encrypt from stdin")
+            parser.add_option('--write-to-stdout', default=False, dest='write_to_stdout', action='store_true',
+                help="write decrypted data to stdout")
 
         if subset_opts:
             parser.add_option('-t', '--tags', dest='tags', default='all',

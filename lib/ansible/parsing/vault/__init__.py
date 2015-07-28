@@ -207,11 +207,13 @@ class VaultEditor(object):
     # file I/O, ditto read_file(self, filename) and launch_editor(self, filename)
     # ... "Don't Repeat Yourself", etc.
 
-    def __init__(self, cipher_name, password, filename):
+    def __init__(self, cipher_name, password, filename, read_from_stdin=False, write_to_stdout=False):
         # instantiates a member variable for VaultLib
         self.cipher_name = cipher_name
         self.password = password
         self.filename = filename
+        self.read_from_stdin = read_from_stdin
+        self.write_to_stdout = write_to_stdout
 
     def _edit_file_helper(self, existing_data=None, cipher=None):
         # make sure the umask is set to a sane value
@@ -310,7 +312,7 @@ class VaultEditor(object):
 
         check_prereqs()
 
-        if not os.path.isfile(self.filename):
+        if not (os.path.isfile(self.filename) or self.read_from_stdin):
             raise AnsibleError("%s does not exist" % self.filename)
 
         tmpdata = self.read_data(self.filename)
@@ -342,15 +344,21 @@ class VaultEditor(object):
         self.write_data(enc_data, self.filename)
 
     def read_data(self, filename):
-        f = open(filename, "rb")
+        if self.read_from_stdin:
+            f = sys.stdin
+        else:
+            f = open(filename, "rb")
         tmpdata = f.read()
         f.close()
         return tmpdata
 
     def write_data(self, data, filename):
-        if os.path.isfile(filename):
-            os.remove(filename)
-        f = open(filename, "wb")
+        if(self.write_to_stdout):
+            f = sys.stdout
+        else:
+            if os.path.isfile(filename):
+                os.remove(filename)
+            f = open(filename, "wb")
         f.write(to_bytes(data))
         f.close()
 
