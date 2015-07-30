@@ -148,6 +148,7 @@ class PlayContext(Base):
     _remote_addr      = FieldAttribute(isa='string')
     _password         = FieldAttribute(isa='string')
     _private_key_file = FieldAttribute(isa='string', default=C.DEFAULT_PRIVATE_KEY_FILE)
+    _extra_args       = FieldAttribute(isa='string')
     _timeout          = FieldAttribute(isa='int', default=C.DEFAULT_TIMEOUT)
     _shell            = FieldAttribute(isa='string')
 
@@ -236,6 +237,7 @@ class PlayContext(Base):
 
         self.remote_user = options.remote_user
         self.private_key_file = options.private_key_file
+        self.extra_args = options.extra_args
 
         # privilege escalation
         self.become        = options.become

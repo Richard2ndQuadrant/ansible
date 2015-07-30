@@ -478,6 +478,7 @@ class TaskExecutor:
             self._play_context.port             = this_info.get('ansible_ssh_port', self._play_context.port)
             self._play_context.password         = this_info.get('ansible_ssh_pass', self._play_context.password)
             self._play_context.private_key_file = this_info.get('ansible_ssh_private_key_file', self._play_context.private_key_file)
+            self._play_context.extra_args       = this_info.get('ansible_ssh_extra_args', self._play_context.extra_args)
             self._play_context.connection       = this_info.get('ansible_connection', C.DEFAULT_TRANSPORT)
             self._play_context.become_pass      = this_info.get('ansible_sudo_pass', self._play_context.become_pass)
         except:
