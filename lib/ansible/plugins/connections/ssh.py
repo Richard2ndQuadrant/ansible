@@ -116,8 +116,8 @@ class Connection(ConnectionBase):
                                  "-o", "PasswordAuthentication=no")
         if self._play_context.remote_user is not None and self._play_context.remote_user != pwd.getpwuid(os.geteuid())[0]:
             self._common_args += ("-o", "User={0}".format(self._play_context.remote_user))
-		if self._play_context.extra_args is not None:
-		    self._common_args += ("-o", self._play_context.extra_args.split)
+        if self._play_context.extra_args is not None:
+            self._common_args += ("-o", self._play_context.extra_args.split)
         self._common_args += ("-o", "ConnectTimeout={0}".format(self._play_context.timeout))
 
         self._connected = True
