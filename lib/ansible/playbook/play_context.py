@@ -81,6 +81,7 @@ MAGIC_VARIABLE_MAPPING = dict(
    port             = ('ansible_ssh_port', 'ansible_port'),
    password         = ('ansible_ssh_pass', 'ansible_password'),
    private_key_file = ('ansible_ssh_private_key_file', 'ansible_private_key_file'),
+   extra_args       = ('ansible_ssh_extra_args'),
    shell            = ('ansible_shell_type',),
    become           = ('ansible_become',),
    become_method    = ('ansible_become_method',),
