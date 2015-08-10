@@ -76,7 +76,7 @@ class PlaybookCLI(CLI):
             raise AnsibleOptionsError("You must specify a playbook file to run")
 
         self.display.verbosity = self.options.verbosity
-        self.validate_conflicts(runas_opts=True, vault_opts=True)
+        self.validate_conflicts(runas_opts=True, vault_opts=True, fork_opts=True)
 
     def run(self):
 
@@ -102,12 +102,6 @@ class PlaybookCLI(CLI):
             vault_pass = self.ask_vault_passwords(ask_vault_pass=True, ask_new_vault_pass=False, confirm_new=False)[0]
 
         loader = DataLoader(vault_password=vault_pass)
-
-        # FIXME: this should be moved inside the playbook executor code
-        only_tags = self.options.tags.split(",")
-        skip_tags = self.options.skip_tags
-        if self.options.skip_tags is not None:
-            skip_tags = self.options.skip_tags.split(",")
 
         # initial error check, to make sure all specified playbooks are accessible
         # before we start running anything through the playbook executor
@@ -162,7 +156,7 @@ class PlaybookCLI(CLI):
                     mytags = set()
                     if self.options.listtags and play.tags:
                         mytags = mytags.union(set(play.tags))
-                        msg += '\n    tags: [%s]' % (','.join(mytags))
+                        msg += '    TAGS: [%s]' % (','.join(mytags))
 
                     if self.options.listhosts:
                         playhosts = set(inventory.get_hosts(play.hosts))
@@ -183,7 +177,7 @@ class PlaybookCLI(CLI):
                             for task in block.block:
                                 taskmsg += "\n      %s" % task
                                 if self.options.listtags and task.tags:
-                                    taskmsg += "\n        tags: [%s]" % ','.join(mytags.union(set(task.tags)))
+                                    taskmsg += "    TAGS: [%s]" % ','.join(mytags.union(set(task.tags)))
                                 j = j + 1
 
                         self.display.display(taskmsg)

@@ -37,7 +37,7 @@ from ansible.playbook.helpers import load_list_of_blocks
 from ansible.playbook.role.include import RoleInclude
 from ansible.playbook.role.metadata import RoleMetadata
 from ansible.playbook.taggable import Taggable
-from ansible.plugins import get_all_plugin_loaders, push_basedir
+from ansible.plugins import get_all_plugin_loaders
 from ansible.utils.vars import combine_vars
 
 
@@ -93,7 +93,6 @@ class Role(Base, Become, Conditional, Taggable):
 
     @staticmethod
     def load(role_include, play, parent_role=None):
-        # FIXME: add back in the role caching support
         try:
             # The ROLE_CACHE is a dictionary of role names, with each entry
             # containing another dictionary corresponding to a set of parameters
@@ -142,8 +141,6 @@ class Role(Base, Become, Conditional, Taggable):
         self._role_params      = role_include.get_role_params()
         self._variable_manager = role_include.get_variable_manager()
         self._loader           = role_include.get_loader()
-
-        push_basedir(self._role_path)
 
         if parent_role:
             self.add_parent(parent_role)

@@ -20,6 +20,7 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import itertools
+import operator
 import uuid
 
 from functools import partial
@@ -35,9 +36,8 @@ from ansible.parsing import DataLoader
 from ansible.playbook.attribute import Attribute, FieldAttribute
 from ansible.template import Templar
 from ansible.utils.boolean import boolean
-
 from ansible.utils.debug import debug
-
+from ansible.utils.vars import combine_vars
 from ansible.template import template
 
 class Base:
@@ -46,6 +46,9 @@ class Base:
     _connection          = FieldAttribute(isa='string')
     _port                = FieldAttribute(isa='int')
     _remote_user         = FieldAttribute(isa='string')
+
+    # variables
+    _vars                = FieldAttribute(isa='dict', default=dict())
 
     # flags and misc. settings
     _environment         = FieldAttribute(isa='list', default=[])
@@ -63,6 +66,13 @@ class Base:
 
         # and initialize the base attributes
         self._initialize_base_attributes()
+
+        try:
+            from __main__ import display
+            self._display = display
+        except ImportError:
+            from ansible.utils.display import Display
+            self._display = Display()
 
     # The following three functions are used to programatically define data
     # descriptors (aka properties) for the Attributes of all of the playbook
@@ -153,24 +163,18 @@ class Base:
         else:
             self._loader = DataLoader()
 
-        # FIXME: is this required anymore? This doesn't seem to do anything
-        #        helpful, and was added in very early stages of the base class
-        #        development.
-        #if isinstance(ds, string_types) or isinstance(ds, FileIO):
-        #    ds = self._loader.load(ds)
-
         # call the preprocess_data() function to massage the data into
         # something we can more easily parse, and then call the validation
         # function on it to ensure there are no incorrect key values
         ds = self.preprocess_data(ds)
         self._validate_attributes(ds)
 
-        # Walk all attributes in the class.
-        #
+        # Walk all attributes in the class. We sort them based on their priority
+        # so that certain fields can be loaded before others, if they are dependent.
         # FIXME: we currently don't do anything with private attributes but
         #        may later decide to filter them out of 'ds' here.
-
-        for name in self._get_base_attributes():
+        base_attributes = self._get_base_attributes()
+        for name, attr in sorted(base_attributes.items(), key=operator.itemgetter(1)):
             # copy the value over unless a _load_field method is defined
             if name in ds:
                 method = getattr(self, '_load_%s' % name, None)
@@ -348,6 +352,30 @@ class Base:
 
         # restore the UUID field
         setattr(self, '_uuid', data.get('uuid'))
+
+    def _load_vars(self, attr, ds):
+        '''
+        Vars in a play can be specified either as a dictionary directly, or
+        as a list of dictionaries. If the later, this method will turn the
+        list into a single dictionary.
+        '''
+
+        try:
+            if isinstance(ds, dict):
+                return ds
+            elif isinstance(ds, list):
+                all_vars = dict()
+                for item in ds:
+                    if not isinstance(item, dict):
+                        raise ValueError
+                    all_vars = combine_vars(all_vars, item)
+                return all_vars
+            elif ds is None:
+                return {}
+            else:
+                raise ValueError
+        except ValueError:
+            raise AnsibleParserError("Vars in a %s must be specified as a dictionary, or a list of dictionaries" % self.__class__.__name__, obj=ds)
 
     def _extend_value(self, value, new_value):
         '''

@@ -33,6 +33,8 @@ from ansible.template import Templar
 
 from ansible.utils.color import colorize, hostcolor
 from ansible.utils.debug import debug
+from ansible.utils.encrypt import do_encrypt
+from ansible.utils.unicode import to_unicode
 
 class PlaybookExecutor:
 
@@ -236,46 +238,48 @@ class PlaybookExecutor:
 
     def _do_var_prompt(self, varname, private=True, prompt=None, encrypt=None, confirm=False, salt_size=None, salt=None, default=None):
 
-        if prompt and default is not None:
-            msg = "%s [%s]: " % (prompt, default)
-        elif prompt:
-            msg = "%s: " % prompt
-        else:
-            msg = 'input for %s: ' % varname
-
-        def do_prompt(prompt, private):
-            if sys.stdout.encoding:
-                msg = prompt.encode(sys.stdout.encoding)
+        if sys.__stdin__.isatty():
+            if prompt and default is not None:
+                msg = "%s [%s]: " % (prompt, default)
+            elif prompt:
+                msg = "%s: " % prompt
             else:
-                # when piping the output, or at other times when stdout
-                # may not be the standard file descriptor, the stdout
-                # encoding may not be set, so default to something sane
-                msg = prompt.encode(locale.getpreferredencoding())
-            if private:
-                return getpass.getpass(msg)
-            return raw_input(msg)
+                msg = 'input for %s: ' % varname
 
-        if confirm:
-            while True:
+            def do_prompt(prompt, private):
+                if sys.stdout.encoding:
+                    msg = prompt.encode(sys.stdout.encoding)
+                else:
+                    # when piping the output, or at other times when stdout
+                    # may not be the standard file descriptor, the stdout
+                    # encoding may not be set, so default to something sane
+                    msg = prompt.encode(locale.getpreferredencoding())
+                if private:
+                    return getpass.getpass(msg)
+                return raw_input(msg)
+
+            if confirm:
+                while True:
+                    result = do_prompt(msg, private)
+                    second = do_prompt("confirm " + msg, private)
+                    if result == second:
+                        break
+                    self._display.display("***** VALUES ENTERED DO NOT MATCH ****")
+            else:
                 result = do_prompt(msg, private)
-                second = do_prompt("confirm " + msg, private)
-                if result == second:
-                    break
-                display("***** VALUES ENTERED DO NOT MATCH ****")
         else:
-            result = do_prompt(msg, private)
+            result = None
+            self._display.warning("Not prompting as we are not in interactive mode")
 
         # if result is false and default is not None
         if not result and default is not None:
             result = default
 
-        # FIXME: make this work with vault or whatever this old method was
-        #if encrypt:
-        #    result = utils.do_encrypt(result, encrypt, salt_size, salt)
+        if encrypt:
+            result = do_encrypt(result, encrypt, salt_size, salt)
 
         # handle utf-8 chars
-        # FIXME: make this work
-        #result = to_unicode(result, errors='strict')
+        result = to_unicode(result, errors='strict')
         return result
 
 

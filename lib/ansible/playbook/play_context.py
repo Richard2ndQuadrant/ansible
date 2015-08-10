@@ -135,6 +135,18 @@ SU_PROMPT_LOCALIZATIONS = [
     '密碼',
 ]
 
+TASK_ATTRIBUTE_OVERRIDES = (
+    'become',
+    'become_user',
+    'become_pass',
+    'become_method',
+    'connection',
+    'delegate_to',
+    'no_log',
+    'remote_user',
+)
+
+
 class PlayContext(Base):
 
     '''
@@ -189,7 +201,6 @@ class PlayContext(Base):
         self.password    = passwords.get('conn_pass','')
         self.become_pass = passwords.get('become_pass','')
 
-        #TODO: just pull options setup to above?
         # set options before play to allow play to override them
         if options:
             self.set_options(options)
@@ -229,7 +240,7 @@ class PlayContext(Base):
         '''
         Configures this connection information instance with data from
         options specified by the user on the command line. These have a
-        higher precedence than those set on the play or host.
+        lower precedence than those set on the play or host.
         '''
 
         if options.connection:
@@ -288,7 +299,7 @@ class PlayContext(Base):
 
         # loop through a subset of attributes on the task object and set
         # connection fields based on their values
-        for attr in ('connection', 'remote_user', 'become', 'become_user', 'become_pass', 'become_method', 'no_log'):
+        for attr in TASK_ATTRIBUTE_OVERRIDES:
             if hasattr(task, attr):
                 attr_val = getattr(task, attr)
                 if attr_val is not None:
@@ -300,6 +311,10 @@ class PlayContext(Base):
             for variable_name in variable_names:
                 if variable_name in variables:
                     setattr(new_info, attr, variables[variable_name])
+
+        # make sure we get port defaults if needed
+        if new_info.port is None and C.DEFAULT_REMOTE_PORT is not None:
+            new_info.port = int(C.DEFAULT_REMOTE_PORT)
 
         # become legacy updates
         if not new_info.become_pass:
@@ -324,7 +339,6 @@ class PlayContext(Base):
             becomecmd   = None
             randbits    = ''.join(chr(random.randint(ord('a'), ord('z'))) for x in xrange(32))
             success_key = 'BECOME-SUCCESS-%s' % randbits
-            #executable = executable or '$SHELL'
             success_cmd = pipes.quote('echo %s; %s' % (success_key, cmd))
 
             if self.become_method == 'sudo':
@@ -369,7 +383,7 @@ class PlayContext(Base):
 
             self.prompt      = prompt
             self.success_key = success_key
-            return ('%s -c ' % executable) + pipes.quote(becomecmd)
+            return ('%s -c %s' % (executable, pipes.quote(becomecmd)))
 
         return cmd
 

@@ -68,16 +68,10 @@ class Task(Base, Conditional, Taggable, Become):
     _failed_when          = FieldAttribute(isa='string')
     _first_available_file = FieldAttribute(isa='list')
     _ignore_errors        = FieldAttribute(isa='bool')
-
     _loop                 = FieldAttribute(isa='string', private=True)
     _loop_args            = FieldAttribute(isa='list', private=True)
     _local_action         = FieldAttribute(isa='string')
-
-    # FIXME: this should not be a Task
-    _meta                 = FieldAttribute(isa='string')
-
     _name                 = FieldAttribute(isa='string', default='')
-
     _notify               = FieldAttribute(isa='list')
     _poll                 = FieldAttribute(isa='int')
     _register             = FieldAttribute(isa='string')
@@ -91,7 +85,6 @@ class Task(Base, Conditional, Taggable, Become):
         self._block        = block
         self._role         = role
         self._task_include = task_include
-        self._vars         = dict()
 
         super(Task, self).__init__()
 
@@ -168,6 +161,16 @@ class Task(Base, Conditional, Taggable, Become):
         new_ds['args']        = args
         new_ds['delegate_to'] = delegate_to
 
+        # we handle any 'vars' specified in the ds here, as we may
+        # be adding things to them below (special handling for includes).
+        # When that deprecated feature is removed, this can be too.
+        if 'vars' in ds:
+            # _load_vars is defined in Base, and is used to load a dictionary
+            # or list of dictionaries in a standard way
+            new_ds['vars'] = self._load_vars(None, ds.pop('vars'))
+        else:
+            new_ds['vars'] = dict()
+
         for (k,v) in ds.iteritems():
             if k in ('action', 'local_action', 'args', 'delegate_to') or k == action or k == 'shell':
                 # we don't want to re-assign these values, which were
@@ -176,7 +179,15 @@ class Task(Base, Conditional, Taggable, Become):
             elif k.replace("with_", "") in lookup_loader:
                 self._preprocess_loop(ds, new_ds, k, v)
             else:
-                new_ds[k] = v
+                # pre-2.0 syntax allowed variables for include statements at the
+                # top level of the task, so we move those into the 'vars' dictionary
+                # here, and show a deprecation message as we will remove this at
+                # some point in the future.
+                if action == 'include' and k not in self._get_base_attributes():
+                    self._display.deprecated("Specifying include variables at the top-level of the task is deprecated. Please see:\nhttp://docs.ansible.com/ansible/playbooks_roles.html#task-include-files-and-encouraging-reuse\n\nfor currently supported syntax regarding included files and variables")
+                    new_ds['vars'][k] = v
+                else:
+                    new_ds[k] = v
 
         return super(Task, self).preprocess_data(new_ds)
 
@@ -193,8 +204,15 @@ class Task(Base, Conditional, Taggable, Become):
 
         super(Task, self).post_validate(templar)
 
+    def _post_validate_loop_args(self, attr, value, templar):
+        '''
+        Override post validation for the loop args field, which is templated
+        specially in the TaskExecutor class when evaluating loops.
+        '''
+        return value
+
     def get_vars(self):
-        all_vars = self._vars.copy()
+        all_vars = self.vars.copy()
         if self._block:
             all_vars.update(self._block.get_vars())
         if self._task_include:

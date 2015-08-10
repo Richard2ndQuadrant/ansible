@@ -46,6 +46,7 @@ class Inventory(object):
     #              'parser', '_vars_per_host', '_vars_per_group', '_hosts_cache', '_groups_list',
     #              '_pattern_cache', '_vault_password', '_vars_plugins', '_playbook_basedir']
 
+    LOCALHOST_ALIASES = frozenset(('localhost', '127.0.0.1', '::1'))
     def __init__(self, loader, variable_manager, host_list=C.DEFAULT_HOST_LIST):
 
         # the host file file, or script path, or list of hosts
@@ -151,12 +152,10 @@ class Inventory(object):
         #        management will be done in VariableManager
         # get group vars from group_vars/ files and vars plugins
         for group in self.groups:
-            # FIXME: combine_vars
             group.vars = combine_vars(group.vars, self.get_group_variables(group.name))
 
         # get host vars from host_vars/ files and vars plugins
         for host in self.get_hosts():
-            # FIXME: combine_vars
             host.vars = combine_vars(host.vars, self.get_host_variables(host.name))
 
 
@@ -370,7 +369,7 @@ class Inventory(object):
                     for host in matching_hosts:
                         __append_host_to_results(host)
 
-        if pattern in ["localhost", "127.0.0.1", "::1"] and len(results) == 0:
+        if pattern in self.LOCALHOST_ALIASES and len(results) == 0:
             new_host = self._create_implicit_localhost(pattern)
             results.append(new_host)
         return results
@@ -403,12 +402,15 @@ class Inventory(object):
     def get_host(self, hostname):
         if hostname not in self._hosts_cache:
             self._hosts_cache[hostname] = self._get_host(hostname)
+            if hostname in self.LOCALHOST_ALIASES:
+                for host in self.LOCALHOST_ALIASES.difference((hostname,)):
+                    self._hosts_cache[host] = self._hosts_cache[hostname]
         return self._hosts_cache[hostname]
 
     def _get_host(self, hostname):
-        if hostname in ['localhost', '127.0.0.1', '::1']:
+        if hostname in self.LOCALHOST_ALIASES:
             for host in self.get_group('all').get_hosts():
-                if host.name in ['localhost', '127.0.0.1', '::1']:
+                if host.name in self.LOCALHOST_ALIASES:
                     return host
             return self._create_implicit_localhost(hostname)
         else:
@@ -441,11 +443,9 @@ class Inventory(object):
         vars_results = [ plugin.get_group_vars(group, vault_password=vault_password) for plugin in self._vars_plugins if hasattr(plugin, 'get_group_vars')]
         for updated in vars_results:
             if updated is not None:
-                # FIXME: combine_vars
                 vars = combine_vars(vars, updated)
 
         # Read group_vars/ files
-        # FIXME: combine_vars
         vars = combine_vars(vars, self.get_group_vars(group))
 
         return vars
@@ -475,25 +475,21 @@ class Inventory(object):
         vars_results = [ plugin.run(host, vault_password=vault_password) for plugin in self._vars_plugins if hasattr(plugin, 'run')]
         for updated in vars_results:
             if updated is not None:
-                # FIXME: combine_vars
                 vars = combine_vars(vars, updated)
 
         # plugin.get_host_vars retrieves just vars for specific host
         vars_results = [ plugin.get_host_vars(host, vault_password=vault_password) for plugin in self._vars_plugins if hasattr(plugin, 'get_host_vars')]
         for updated in vars_results:
             if updated is not None:
-                # FIXME: combine_vars
                 vars = combine_vars(vars, updated)
 
         # still need to check InventoryParser per host vars
         # which actually means InventoryScript per host,
         # which is not performant
         if self.parser is not None:
-            # FIXME: combine_vars
             vars = combine_vars(vars, self.parser.get_host_variables(host))
 
         # Read host_vars/ files
-        # FIXME: combine_vars
         vars = combine_vars(vars, self.get_host_vars(host))
 
         return vars
@@ -510,7 +506,7 @@ class Inventory(object):
         """ return a list of hostnames for a pattern """
 
         result = [ h for h in self.get_hosts(pattern) ]
-        if len(result) == 0 and pattern in ["localhost", "127.0.0.1", "::1"]:
+        if len(result) == 0 and pattern in self.LOCALHOST_ALIASES:
             result = [pattern]
         return result
 
@@ -664,11 +660,11 @@ class Inventory(object):
             # FIXME: these should go to VariableManager
             if group and host is None:
                 # load vars in dir/group_vars/name_of_group
-                base_path = os.path.join(basedir, "group_vars/%s" % group.name)
+                base_path = os.path.realpath(os.path.join(basedir, "group_vars/%s" % group.name))
                 results = self._variable_manager.add_group_vars_file(base_path, self._loader)
             elif host and group is None:
                 # same for hostvars in dir/host_vars/name_of_host
-                base_path = os.path.join(basedir, "host_vars/%s" % host.name)
+                base_path = os.path.realpath(os.path.join(basedir, "host_vars/%s" % host.name))
                 results = self._variable_manager.add_host_vars_file(base_path, self._loader)
 
         # all done, results is a dictionary of variables for this particular host.

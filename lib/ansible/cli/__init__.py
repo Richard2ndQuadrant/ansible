@@ -102,7 +102,10 @@ class CLI(object):
     def run(self):
 
         if self.options.verbosity > 0:
-            self.display.display("Using %s as config file" % C.CONFIG_FILE)
+            if C.CONFIG_FILE:
+                self.display.display("Using %s as config file" % C.CONFIG_FILE)
+            else:
+                self.display.display("No config file found; using defaults")
 
     @staticmethod
     def ask_vault_passwords(ask_vault_pass=False, ask_new_vault_pass=False, confirm_vault=False, confirm_new=False):
@@ -183,7 +186,7 @@ class CLI(object):
             self.options.become_method = 'su'
 
 
-    def validate_conflicts(self, vault_opts=False, runas_opts=False):
+    def validate_conflicts(self, vault_opts=False, runas_opts=False, fork_opts=False):
         ''' check for conflicting options '''
 
         op = self.options
@@ -207,6 +210,10 @@ class CLI(object):
                                   "and su arguments ('-su', '--su-user', and '--ask-su-pass') "
                                   "and become arguments ('--become', '--become-user', and '--ask-become-pass')"
                                   " are exclusive of each other")
+
+        if fork_opts:
+            if op.forks < 1:
+                self.parser.error("The number of processes (--forks) must be >= 1")
 
     @staticmethod
     def expand_tilde(option, opt, value, parser):

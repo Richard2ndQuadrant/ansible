@@ -32,8 +32,6 @@ from ansible.playbook.role import Role
 from ansible.playbook.taggable import Taggable
 from ansible.playbook.task import Task
 
-from ansible.utils.vars import combine_vars
-
 
 __all__ = ['Play']
 
@@ -64,19 +62,18 @@ class Play(Base, Taggable, Become):
     _name                = FieldAttribute(isa='string', default='')
 
     # Variable Attributes
-    _vars                = FieldAttribute(isa='dict', default=dict())
     _vars_files          = FieldAttribute(isa='list', default=[])
     _vars_prompt         = FieldAttribute(isa='list', default=[])
     _vault_password      = FieldAttribute(isa='string')
+
+    # Role Attributes
+    _roles               = FieldAttribute(isa='list', default=[], priority=100)
 
     # Block (Task) Lists Attributes
     _handlers            = FieldAttribute(isa='list', default=[])
     _pre_tasks           = FieldAttribute(isa='list', default=[])
     _post_tasks          = FieldAttribute(isa='list', default=[])
     _tasks               = FieldAttribute(isa='list', default=[])
-
-    # Role Attributes
-    _roles               = FieldAttribute(isa='list', default=[])
 
     # Flag/Setting Attributes
     _any_errors_fatal    = FieldAttribute(isa='bool', default=False)
@@ -150,30 +147,6 @@ class Play(Base, Taggable, Become):
 
         return ds
 
-    def _load_vars(self, attr, ds):
-        '''
-        Vars in a play can be specified either as a dictionary directly, or
-        as a list of dictionaries. If the later, this method will turn the
-        list into a single dictionary.
-        '''
-
-        try:
-            if isinstance(ds, dict):
-                return ds
-            elif isinstance(ds, list):
-                all_vars = dict()
-                for item in ds:
-                    if not isinstance(item, dict):
-                        raise ValueError
-                    all_vars = combine_vars(all_vars, item)
-                return all_vars
-            elif ds is None:
-                return {}
-            else:
-                raise ValueError
-        except ValueError:
-            raise AnsibleParserError("Vars in a playbook must be specified as a dictionary, or a list of dictionaries", obj=ds)
-
     def _load_tasks(self, attr, ds):
         '''
         Loads a list of blocks from a list which may be mixed tasks/blocks.
@@ -211,7 +184,7 @@ class Play(Base, Taggable, Become):
         if ds is None:
             ds = []
 
-        role_includes = load_list_of_roles(ds, variable_manager=self._variable_manager, loader=self._loader)
+        role_includes = load_list_of_roles(ds, play=self, variable_manager=self._variable_manager, loader=self._loader)
 
         roles = []
         for ri in role_includes:
@@ -230,6 +203,14 @@ class Play(Base, Taggable, Become):
         Override post validation of vars_files on the play, as we don't want to
         template these too early.
         '''
+        return value
+
+    # disable validation on various fields which will be validated later in other objects
+    def _post_validate_become(self, attr, value, templar):
+        return value
+    def _post_validate_become_user(self, attr, value, templar):
+        return value
+    def _post_validate_become_method(self, attr, value, templar):
         return value
 
     # FIXME: post_validation needs to ensure that become/su/sudo have only 1 set

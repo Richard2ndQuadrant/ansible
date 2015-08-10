@@ -29,7 +29,7 @@ from ansible import constants as C
 from ansible.errors import AnsibleError, AnsibleParserError
 from ansible.playbook.conditional import Conditional
 from ansible.playbook.task import Task
-from ansible.plugins import lookup_loader, connection_loader, action_loader
+from ansible.plugins import connection_loader, action_loader
 from ansible.template import Templar
 from ansible.utils.listify import listify_lookup_plugin_terms
 from ansible.utils.unicode import to_unicode
@@ -127,6 +127,13 @@ class TaskExecutor:
             return result
         except AnsibleError, e:
             return dict(failed=True, msg=to_unicode(e, nonstring='simplerepr'))
+        finally:
+            try:
+                self._connection.close()
+            except AttributeError:
+                pass
+            except Exception, e:
+                debug("error closing connection: %s" % to_unicode(e))
 
     def _get_loop_items(self):
         '''
@@ -134,10 +141,22 @@ class TaskExecutor:
         and returns the items result.
         '''
 
+        # create a copy of the job vars here so that we can modify
+        # them temporarily without changing them too early for other
+        # parts of the code that might still need a pristine version
+        vars_copy = self._job_vars.copy()
+
+        # now we update them with the play context vars
+        self._play_context.update_vars(vars_copy)
+
+        templar = Templar(loader=self._loader, shared_loader_obj=self._shared_loader_obj, variables=vars_copy)
         items = None
-        if self._task.loop and self._task.loop in lookup_loader:
-            loop_terms = listify_lookup_plugin_terms(terms=self._task.loop_args, variables=self._job_vars, loader=self._loader)
-            items = lookup_loader.get(self._task.loop, loader=self._loader).run(terms=loop_terms, variables=self._job_vars)
+        if self._task.loop:
+            if self._task.loop in self._shared_loader_obj.lookup_loader:
+                loop_terms = listify_lookup_plugin_terms(terms=self._task.loop_args, templar=templar, loader=self._loader, fail_on_undefined=True)
+                items = self._shared_loader_obj.lookup_loader.get(self._task.loop, loader=self._loader, templar=templar).run(terms=loop_terms, variables=vars_copy)
+            else:
+                raise AnsibleError("Unexpected failure in finding the lookup named '%s' in the available lookup plugins" % self._task.loop)
 
         return items
 
@@ -404,7 +423,6 @@ class TaskExecutor:
         correct connection object from the list of connection plugins
         '''
 
-        # FIXME: delegate_to calculation should be done here
         # FIXME: calculation of connection params/auth stuff should be done here
 
         if not self._play_context.remote_addr:

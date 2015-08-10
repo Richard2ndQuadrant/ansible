@@ -18,7 +18,7 @@ Major Changes:
  * big_ip modules now support turning off ssl certificate validation (use only for self signed)
  * template code now retains types for bools and numbers instead of turning them into strings.
    If you need the old behaviour, quote the value and it will get passed around as a string
- * Consiidated code from modules using urllib2 to normalize features, TLS and SNI support
+ * Consolidated code from modules using urllib2 to normalize features, TLS and SNI support
 
 Deprecated Modules (new ones in parens):
   * ec2_ami_search (ec2_ami_find)
@@ -32,8 +32,10 @@ New Modules:
   * amazon: ec2_ami_find
   * amazon: ec2_eni
   * amazon: ec2_eni_facts
+  * amazon: ec2_remote_facts
   * amazon: ec2_vpc_net
   * amazon: ec2_vpc_route_table_facts
+  * amazon: ec2_vpc_subnet
   * amazon: ec2_win_password
   * amazon: elasticache_subnet_group
   * amazon: iam
@@ -41,6 +43,7 @@ New Modules:
   * amazon: route53_zone
   * amazon: sts_assume_role
   * amazon: s3_logging
+  * apk
   * bundler
   * centurylink: clc_publicip
   * circonus_annotation
@@ -51,6 +54,7 @@ New Modules:
   * cloudtrail
   * cloudstack: cs_account
   * cloudstack: cs_affinitygroup
+  * cloudstack: cs_domain
   * cloudstack: cs_facts
   * cloudstack: cs_firewall
   * cloudstack: cs_iso
@@ -107,8 +111,10 @@ New Modules:
   * rabbitmq_binding
   * rabbitmq_exchange
   * rabbitmq_queue
+  * selinux_permissive
   * sensu_check
   * sensu_subscription
+  * slackpkg
   * vertica_configuration
   * vertica_facts
   * vertica_role
@@ -144,7 +150,15 @@ New Inventory scripts:
   * proxmox
   * serf
 
+New Lookups:
+ * credstash
+ * ini
+
 Other Notable Changes:
+
+* synchronize module's dest_port parameter now takes precedence over the ansible_ssh_port inventory setting
+* play output is now dynamically sized to terminal with a minimal of 80 coluumns (old default)
+* vars_prompt and pause are now skipped with a warning if the play is called non interactively (i.e. pull from cron)
 
 ## 1.9.2 "Dancing In the Street" - Jun 26, 2015
 

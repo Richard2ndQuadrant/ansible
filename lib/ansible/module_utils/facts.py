@@ -1048,7 +1048,8 @@ class LinuxHardware(Hardware):
                 pciid = m.group(1)
                 did = re.escape(pciid)
                 m = re.search("^" + did + "\s(.*)$", pcidata, re.MULTILINE)
-                d['host'] = m.group(1)
+                if m:
+                    d['host'] = m.group(1)
 
             d['holders'] = []
             if os.path.isdir(sysdir + "/holders"):
@@ -1876,9 +1877,12 @@ class LinuxNetwork(Network):
                     if not line:
                         continue
                     words = line.split()
+                    broadcast = ''
                     if words[0] == 'inet':
                         if '/' in words[1]:
                             address, netmask_length = words[1].split('/')
+                            if len(words) > 3:
+                                broadcast = words[3]
                         else:
                             # pointopoint interfaces do not have a prefix
                             address = words[1]
@@ -1892,6 +1896,7 @@ class LinuxNetwork(Network):
                             interfaces[iface] = {}
                         if not secondary and "ipv4" not in interfaces[iface]:
                             interfaces[iface]['ipv4'] = {'address': address,
+                                                         'broadcast': broadcast,
                                                          'netmask': netmask,
                                                          'network': network}
                         else:
@@ -1899,6 +1904,7 @@ class LinuxNetwork(Network):
                                 interfaces[iface]["ipv4_secondaries"] = []
                             interfaces[iface]["ipv4_secondaries"].append({
                                 'address': address,
+                                'broadcast': broadcast,
                                 'netmask': netmask,
                                 'network': network,
                             })
@@ -1909,12 +1915,14 @@ class LinuxNetwork(Network):
                                 interfaces[device]["ipv4_secondaries"] = []
                             interfaces[device]["ipv4_secondaries"].append({
                                 'address': address,
+                                'broadcast': broadcast,
                                 'netmask': netmask,
                                 'network': network,
                             })
 
                         # If this is the default address, update default_ipv4
                         if 'address' in default_ipv4 and default_ipv4['address'] == address:
+                            default_ipv4['broadcast'] = broadcast 
                             default_ipv4['netmask'] = netmask
                             default_ipv4['network'] = network
                             default_ipv4['macaddress'] = macaddress

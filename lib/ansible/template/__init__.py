@@ -47,7 +47,6 @@ __all__ = ['Templar']
 NON_TEMPLATED_TYPES = ( bool, Number )
 
 JINJA2_OVERRIDE = '#jinja2:'
-JINJA2_ALLOWED_OVERRIDES = frozenset(['trim_blocks', 'lstrip_blocks', 'newline_sequence', 'keep_trailing_newline'])
 
 class Templar:
     '''
@@ -66,8 +65,6 @@ class Templar:
             self._basedir = './'
 
         if shared_loader_obj:
-            global _basedirs
-            _basedirs = shared_loader_obj.basedirs[:]
             self._filter_loader = getattr(shared_loader_obj, 'filter_loader')
             self._lookup_loader = getattr(shared_loader_obj, 'lookup_loader')
         else:
@@ -85,7 +82,7 @@ class Templar:
             undefined=StrictUndefined,
             extensions=self._get_extensions(),
             finalize=self._finalize,
-            loader=FileSystemLoader('.'),
+            loader=FileSystemLoader(self._basedir),
         )
         self.environment.template_class = AnsibleJ2Template
 
@@ -251,7 +248,7 @@ class Templar:
         return thing if thing is not None else ''
 
     def _lookup(self, name, *args, **kwargs):
-        instance = self._lookup_loader.get(name.lower(), loader=self._loader)
+        instance = self._lookup_loader.get(name.lower(), loader=self._loader, templar=self)
 
         if instance is not None:
             # safely catch run failures per #5059
@@ -279,7 +276,6 @@ class Templar:
             if overrides is None:
                 myenv = self.environment.overlay()
             else:
-                overrides = JINJA2_ALLOWED_OVERRIDES.intersection(set(overrides))
                 myenv = self.environment.overlay(overrides)
 
             # Get jinja env overrides from template
@@ -290,8 +286,7 @@ class Templar:
                 for pair in line.split(','):
                     (key,val) = pair.split(':')
                     key = key.strip()
-                    if key in JINJA2_ALLOWED_OVERRIDES:
-                        setattr(myenv, key, ast.literal_eval(val.strip()))
+                    setattr(myenv, key, ast.literal_eval(val.strip()))
 
             #FIXME: add tests
             myenv.filters.update(self._get_filters())
