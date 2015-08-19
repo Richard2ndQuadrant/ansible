@@ -265,7 +265,7 @@ class InventoryParser(object):
         if ':' in pattern:
             pos = pattern.rindex(':')
             try:
-                port = int(pattern[pos+1:])
+                port = int(pattern[pos + 1:])
                 pattern = pattern[0:pos]
             except ValueError:
                 pass
