@@ -54,8 +54,8 @@ class InventoryParser(object):
         # inventory file.
 
         with open(filename) as fh:
-            self.lines = fh.readlines()
-            self._parse()
+            # self.lines = fh.readlines()
+            self._parse(fh)
 
         # Finally, add all top-level groups (including 'ungrouped') as
         # children of 'all'.
@@ -65,10 +65,13 @@ class InventoryParser(object):
                 self.groups['all'].add_child_group(group)
 
         # Note: we could discard self.hosts after this point.
+    
+    def _raise_error(self, message):
+        raise AnsibleError("%s:%d: " % (self.filename, self.lineno) + message)
 
-    def _parse(self):
+    def _parse(self, fh):
         '''
-        Populates self.groups from the contents of self.lines. Raises an error
+        Populates self.groups from the contents of the given filehandle. Raises an error
         on any parse failure.
         '''
 
@@ -80,12 +83,12 @@ class InventoryParser(object):
         # subgroups, and setting variables as we go.
 
         pending_declarations = {}
-        section = 'ungrouped'
-        state = None
+        groupname = 'ungrouped'
+        state = 'hosts'
 
-        i = 0
-        for line in self.lines:
-            i += 1
+        self.lineno = 0
+        for line in fh.readlines():
+            self.lineno += 1
 
             # Is there a better way to get rid of the ending \n?
             line = line.strip()
@@ -99,10 +102,11 @@ class InventoryParser(object):
 
             m = self.patterns['section'].match(line)
             if m:
-                (section, state) = m.groups()
+                (groupname, state) = m.groups()
+                state = state or 'hosts'
 
-                if state not in [None, 'children', 'vars']:
-                    raise AnsibleError("%s:%d: Section [%s:%s] has unknown type: %s" % (self.filename, i, section, state, state))
+                if state not in ['hosts', 'children', 'vars']:
+                    _raise_error("Section [%s:%s] has unknown type: %s" % (groupname, state, state))
 
                 # If we haven't seen this section before, we add a new Group.
                 #
@@ -112,17 +116,17 @@ class InventoryParser(object):
                 # the group anyway, but make a note in pending_declarations and
                 # check at the end.
 
-                if section not in self.groups:
-                    self.groups[section] = Group(name=section)
+                if groupname not in self.groups:
+                    self.groups[groupname] = Group(name=section)
 
                     if state == 'vars':
-                        pending_declarations[section] = dict(line=i, state=state, name=section)
+                        pending_declarations[groupname] = dict(line=self.lineno, state=state, name=groupname)
 
                 # When we see a declaration that we've been waiting for, we can
                 # delete the note.
 
-                if section in pending_declarations and state != 'vars':
-                    del pending_declarations[section]
+                if groupname in pending_declarations and state != 'vars':
+                    del pending_declarations[groupname]
 
                 continue
 
@@ -133,28 +137,28 @@ class InventoryParser(object):
             # [groupname] contains host definitions that must be added to
             # the current group.
             if state is None:
-                hosts = self._parse_host_definition(line, i)
+                hosts = self._parse_host_definition(line)
                 for h in hosts:
-                    self.groups[section].add_host(h)
+                    self.groups[groupname].add_host(h)
 
             # [groupname:vars] contains variable definitions that must be
             # applied to the current group.
             elif state == 'vars':
-                (k, v) = self._parse_variable_definition(line, i)
-                self.groups[section].set_variable(k, v)
+                (k, v) = self._parse_variable_definition(line)
+                self.groups[groupname].set_variable(k, v)
 
             # [groupname:children] contains subgroup names that must be
             # added as children of the current group. The subgroup names
             # must themselves be declared as groups, but as before, they
             # may only be declared later.
             elif state == 'children':
-                child = self._parse_group_name(line, i)
+                child = self._parse_group_name(line)
 
                 if child not in self.groups:
                     self.groups[child] = Group(name=child)
-                    pending_declarations[child] = dict(line=i, state=state, name=child, parent=section)
+                    pending_declarations[child] = dict(line=self.lineno, state=state, name=child, parent=groupname)
 
-                self.groups[section].add_child_group(self.groups[child])
+                self.groups[groupname].add_child_group(self.groups[child])
 
                 # Note: there's no reason why we couldn't accept variable
                 # definitions here, and set them on the named child group.
@@ -162,7 +166,7 @@ class InventoryParser(object):
             # This is a fencepost. It can happen only if the state checker
             # accepts a state that isn't handled above.
             else:
-                raise AnsibleError("%s:%d: Entered unhandled state: %s" % (self.filename, i, state))
+                _raise_error("Entered unhandled state: %s" % (state))
 
         # Any entries in pending_declarations not removed by a group declaration
         # above mean that there was an unresolved forward reference. We report
@@ -175,7 +179,7 @@ class InventoryParser(object):
             elif decl['state'] == 'children':
                 raise AnsibleError("%s:%d: Section [%s:children] includes undefined group: %s" % (self.filename, decl['line'], decl['parent'], decl['name']))
 
-    def _parse_group_name(self, line, i):
+    def _parse_group_name(self, line):
         '''
         Takes a single line and tries to parse it as a group name. Returns the
         group name if successful, or raises an error.
@@ -185,9 +189,9 @@ class InventoryParser(object):
         if m:
             return m.group(1)
 
-        raise AnsibleError("%s:%d: Expected group name, got: %s" % (self.filename, i, line))
+        _raise_error("Expected group name, got: %s" % (line))
 
-    def _parse_variable_definition(self, line, i):
+    def _parse_variable_definition(self, line):
         '''
         Takes a string and tries to parse it as a variable definition. Returns
         the key and value if successful, or raises an error.
@@ -202,9 +206,9 @@ class InventoryParser(object):
             (k, v) = [e.strip() for e in line.split("=", 1)]
             return (k, self._parse_value(v))
 
-        raise AnsibleError("%s:%d: Expected key=value, got: %s" % (self.filename, i, line))
+        _raise_error("Expected key=value, got: %s" % (line))
 
-    def _parse_host_definition(self, line, i):
+    def _parse_host_definition(self, line):
         '''
         Takes a single line and tries to parse it as a host definition. Returns
         a list of Hosts if successful, or raises an error.
@@ -223,7 +227,7 @@ class InventoryParser(object):
         try:
             tokens = shlex.split(line, comments=True)
         except ValueError as e:
-            raise AnsibleError("%s:%d: Error parsing host definition '%s': %s" % (self.filename, i, varstring, e))
+            _raise_error("Error parsing host definition '%s': %s" % (varstring, e))
 
         (hostnames, port) = self._expand_hostpattern(tokens[0])
         hosts = self._Hosts(hostnames, port)
@@ -233,7 +237,7 @@ class InventoryParser(object):
         variables = {}
         for t in tokens[1:]:
             if '=' not in t:
-                raise AnsibleError("%s:%d: Expected key=value host variable assignment, got: %s" % (self.filename, i, t))
+                _raise_error("Expected key=value host variable assignment, got: %s" % (t))
             (k, v) = t.split('=', 1)
             variables[k] = self._parse_value(v)
 
