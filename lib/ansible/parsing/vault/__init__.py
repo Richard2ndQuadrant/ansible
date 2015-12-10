@@ -35,7 +35,9 @@ from binascii import unhexlify
 # using the newer VaultAES256 which does not require md5
 from hashlib import md5
 
-from ansible.utils.unicode import to_bytes
+from ansible.compat.six import PY3, byte2int
+from ansible.utils.unicode import to_unicode, to_bytes
+from ansible import constants as C
 
 try:
     from Crypto.Hash import SHA256, HMAC
@@ -50,19 +52,19 @@ try:
 except ImportError:
     HAS_COUNTER = False
 
-# KDF import fails for 2.0.1, requires >= 2.6.1 from pip
-try:
-    from Crypto.Protocol.KDF import PBKDF2
-    HAS_PBKDF2 = True
-except ImportError:
-    HAS_PBKDF2 = False
-
 # AES IMPORTS
 try:
     from Crypto.Cipher import AES as AES
     HAS_AES = True
 except ImportError:
     HAS_AES = False
+
+# KDF import fails for 2.0.1, requires >= 2.6.1 from pip
+try:
+    from Crypto.Protocol.KDF import PBKDF2
+    HAS_PBKDF2 = True
+except ImportError:
+    HAS_PBKDF2 = False
 
 # OpenSSL pbkdf2_hmac
 HAS_PBKDF2HMAC = False
@@ -73,9 +75,6 @@ try:
     HAS_PBKDF2HMAC = True
 except ImportError:
     pass
-
-from ansible.compat.six import PY3, byte2int
-from ansible.utils.unicode import to_unicode, to_bytes
 
 HAS_ANY_PBKDF2HMAC = HAS_PBKDF2 or HAS_PBKDF2HMAC
 
@@ -88,15 +87,11 @@ DEFAULT_WRITE_CIPHER=b'AES256'
 # See also CIPHER_MAPPING at the bottom of the file which maps cipher strings
 # (used in VaultFile header) to a cipher class
 
-def check_prereqs():
-
-    if not HAS_AES or not HAS_COUNTER or not HAS_ANY_PBKDF2HMAC or not HAS_HASH:
-        raise AnsibleError(CRYPTO_UPGRADE)
-
 class VaultLib:
 
-    def __init__(self, password):
+    def __init__(self, password, cipher_options=None):
         self.b_password = to_bytes(password, errors='strict', encoding='utf-8')
+        self.cipher_options = cipher_options
 
     def is_encrypted(self, data):
         """ Test if this is vault encrypted data
@@ -198,7 +193,7 @@ class VaultLib:
         if not b_cipher_name or b_cipher_name not in CIPHER_WRITE_WHITELIST:
             b_cipher_name = DEFAULT_WRITE_CIPHER
 
-        cipher = self._cipher(b_cipher_name)()
+        cipher = self._cipher(b_cipher_name)(options=self.cipher_options)
 
         b_ciphertext = cipher.encrypt(b_plaintext, self.b_password)
         b_data = self._add_vault_header(b_cipher_name, cipher.version, b_ciphertext)
@@ -223,7 +218,7 @@ class VaultLib:
         if not b_cipher_name in CIPHER_WHITELIST:
             raise AnsibleError("Vault file encrypted with unrecognised cipher: {0}".format(b_cipher_name))
 
-        cipher = self._cipher(b_cipher_name)()
+        cipher = self._cipher(b_cipher_name)(options=self.cipher_options)
 
         b_plaintext = cipher.decrypt(b_ciphertext, self.b_password, version=b_cipher_version)
         if b_plaintext is None:
@@ -233,8 +228,9 @@ class VaultLib:
 
 class VaultEditor:
 
-    def __init__(self, password):
-        self.vault = VaultLib(password)
+    def __init__(self, password, cipher=None, options=None):
+        self.cipher = cipher
+        self.vault = VaultLib(password, cipher_options=options)
 
     def _edit_file_helper(self, filename, existing_data=None, force_save=False):
 
@@ -254,7 +250,7 @@ class VaultEditor:
             return
 
         # encrypt new data and write out to tmp
-        enc_data = self.vault.encrypt(tmpdata)
+        enc_data = self.vault.encrypt(tmpdata, cipher_name=self.cipher)
         self.write_data(enc_data, tmp_path)
 
         # shuffle tmp file into place
@@ -262,15 +258,11 @@ class VaultEditor:
 
     def encrypt_file(self, filename, output_file=None):
 
-        check_prereqs()
-
         plaintext = self.read_data(filename)
-        ciphertext = self.vault.encrypt(plaintext)
+        ciphertext = self.vault.encrypt(plaintext, cipher_name=self.cipher)
         self.write_data(ciphertext, output_file or filename)
 
     def decrypt_file(self, filename, output_file=None):
-
-        check_prereqs()
 
         ciphertext = self.read_data(filename)
         plaintext = self.vault.decrypt(ciphertext)[-1]
@@ -278,8 +270,6 @@ class VaultEditor:
 
     def create_file(self, filename):
         """ create a new encrypted file """
-
-        check_prereqs()
 
         # FIXME: If we can raise an error here, we can probably just make it
         # behave like edit instead.
@@ -289,8 +279,6 @@ class VaultEditor:
         self._edit_file_helper(filename)
 
     def edit_file(self, filename):
-
-        check_prereqs()
 
         b_ciphertext = self.read_data(filename)
         b_vault_version, b_cipher_name, b_cipher_version, b_plaintext = self.vault.decrypt(b_ciphertext)
@@ -303,8 +291,6 @@ class VaultEditor:
 
     def plaintext(self, filename):
 
-        check_prereqs()
-
         ciphertext = self.read_data(filename)
         plaintext = self.vault.decrypt(ciphertext)[-1]
 
@@ -312,14 +298,12 @@ class VaultEditor:
 
     def rekey_file(self, filename, new_password):
 
-        check_prereqs()
-
         prev = os.stat(filename)
         ciphertext = self.read_data(filename)
         plaintext = self.vault.decrypt(ciphertext)[-1]
 
         new_vault = VaultLib(new_password)
-        new_ciphertext = new_vault.encrypt(plaintext)
+        new_ciphertext = new_vault.encrypt(plaintext, cipher_name=self.cipher)
 
         self.write_data(new_ciphertext, filename)
 
@@ -400,8 +384,6 @@ class VaultFile(object):
             return False
 
     def get_decrypted(self):
-        check_prereqs()
-
         if self.is_encrypted():
             tmpdata = self.filehandle.read()
             this_vault = VaultLib(self.password)
@@ -427,9 +409,11 @@ class VaultAES:
 
     # Note: strings in this class should be byte strings by default.
 
-    def __init__(self):
+    def __init__(self, options=None):
+
         if not HAS_AES:
             raise AnsibleError(CRYPTO_UPGRADE)
+
         self.version = b'1.1'
 
     def aes_derive_key_and_iv(self, password, salt, key_length, iv_length):
@@ -515,9 +499,10 @@ class VaultAES256:
 
     # Note: strings in this class should be byte strings by default.
 
-    def __init__(self):
+    def __init__(self, options=None):
 
-        check_prereqs()
+        if not HAS_AES or not HAS_COUNTER or not HAS_ANY_PBKDF2HMAC or not HAS_HASH:
+            raise AnsibleError(CRYPTO_UPGRADE)
 
         self.version = b'1.2'
 
