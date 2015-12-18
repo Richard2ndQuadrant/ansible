@@ -699,6 +699,8 @@ class VaultGPG:
             )
         except RuntimeError:
             raise AnsibleError("Couldn't run GPG; please check your gpg binary: %s" % gpg_binary)
+        if not self.gpg.is_gpg2():
+            raise AnsibleError("GPG vault requires gpg2: your version is %s" % self.gpg.binary_version)
 
     def encrypt(self, plaintext, password):
 
