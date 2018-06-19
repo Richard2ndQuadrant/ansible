@@ -266,14 +266,6 @@ class StrategyModule(StrategyBase):
                         if (task.any_errors_fatal or run_once) and not task.ignore_errors:
                             any_errors_fatal = True
                     else:
-                        # handle step if needed, skip meta actions as they are used internally
-                        if self._step and choose_step:
-                            if self._take_step(task):
-                                choose_step = False
-                            else:
-                                skip_rest = True
-                                break
-
                         display.debug("getting variables")
                         task_vars = self._variable_manager.get_vars(play=iterator._play, host=host, task=task)
                         self.add_tqm_variables(task_vars, play=iterator._play)
@@ -296,6 +288,15 @@ class StrategyModule(StrategyBase):
                                 # just ignore any errors during task name templating,
                                 # we don't care if it just shows the raw name
                                 display.debug("templating failed for some reason")
+
+                            # handle step if needed, skip meta actions as they are used internally
+                            if self._step and choose_step:
+                                if self._take_step(task):
+                                    choose_step = False
+                                else:
+                                    skip_rest = True
+                                    break
+
                             display.debug("here goes the callback...")
                             self._tqm.send_callback('v2_playbook_on_task_start', task, is_conditional=False)
                             task.name = saved_name

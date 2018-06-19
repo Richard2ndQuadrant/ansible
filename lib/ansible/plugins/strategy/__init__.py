@@ -30,6 +30,7 @@ import time
 from collections import deque
 from multiprocessing import Lock
 from jinja2.exceptions import UndefinedError
+from termios import tcflush, TCIFLUSH
 
 from ansible import constants as C
 from ansible import context
@@ -959,13 +960,14 @@ class StrategyBase:
     def _take_step(self, task, host=None):
 
         ret = False
-        msg = u'Perform task: %s ' % task
+        msg = '\n%s' % task
         if host:
             msg += u'on %s ' % host
-        msg += u'(N)o/(y)es/(c)ontinue: '
+        msg += u'\n(Y)es/(n)o/(c)ontinue: '
+        tcflush(sys.stdin, TCIFLUSH)
         resp = display.prompt(msg)
 
-        if resp.lower() in ['y', 'yes']:
+        if resp.lower() in ['', 'y', 'yes']:
             display.debug("User ran task")
             ret = True
         elif resp.lower() in ['c', 'continue']:
@@ -974,8 +976,6 @@ class StrategyBase:
             ret = True
         else:
             display.debug("User skipped task")
-
-        display.banner(msg)
 
         return ret
 
