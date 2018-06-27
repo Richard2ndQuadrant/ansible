@@ -960,10 +960,10 @@ class StrategyBase:
     def _take_step(self, task, host=None):
 
         ret = False
-        msg = '\n%s' % task
+        msg = ''
         if host:
-            msg += u'on %s ' % host
-        msg += u'\n(Y)es/(n)o/(c)ontinue: '
+            msg += u'[%s] ' % host
+        msg += u'(Y)es/(n)o/(c)ontinue: '
         tcflush(sys.stdin, TCIFLUSH)
         resp = display.prompt(msg)
 

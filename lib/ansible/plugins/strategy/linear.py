@@ -289,19 +289,19 @@ class StrategyModule(StrategyBase):
                                 # we don't care if it just shows the raw name
                                 display.debug("templating failed for some reason")
 
-                            # handle step if needed, skip meta actions as they are used internally
-                            if self._step and choose_step:
-                                if self._take_step(task):
-                                    choose_step = False
-                                else:
-                                    skip_rest = True
-                                    break
-
                             display.debug("here goes the callback...")
                             self._tqm.send_callback('v2_playbook_on_task_start', task, is_conditional=False)
                             task.name = saved_name
                             callback_sent = True
                             display.debug("sending task start callback")
+
+                            if self._step and choose_step:
+                                if self._take_step(task):
+                                    choose_step = False
+                                else:
+                                    skip_rest = True
+                                    del task_vars
+                                    break
 
                         self._blocked_hosts[host.get_name()] = True
                         self._queue_task(host, task, task_vars, play_context)
