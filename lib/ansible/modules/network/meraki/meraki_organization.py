@@ -20,9 +20,6 @@ short_description: Manage organizations in the Meraki cloud
 version_added: "2.6"
 description:
 - Allows for creation, management, and visibility into organizations within Meraki.
-notes:
-- More information about the Meraki API can be found at U(https://dashboard.meraki.com/api_docs).
-- Some of the options are likely only used for developers within Meraki.
 options:
     state:
         description:
@@ -85,10 +82,22 @@ EXAMPLES = r'''
 '''
 
 RETURN = r'''
-response:
-    description: Data returned from Meraki dashboard.
-    type: dict
-    returned: info
+data:
+  description: Information about the organization which was created or modified
+  returned: success
+  type: complex
+  contains:
+    id:
+      description: Unique identification number of organization
+      returned: success
+      type: int
+      sample: 2930418
+    name:
+      description: Name of organization
+      returned: success
+      type: string
+      sample: YourOrg
+
 '''
 
 import os
