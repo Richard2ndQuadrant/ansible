@@ -273,6 +273,7 @@ def main():
             validate_certs=dict(type='bool', default=True),
             keyserver=dict(type='str'),
             state=dict(type='str', default='present', choices=['absent', 'present']),
+            force_basic_auth=dict(type='bool', default=False),
         ),
         supports_check_mode=True,
         mutually_exclusive=(('data', 'filename', 'keyserver', 'url'),),
