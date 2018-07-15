@@ -1433,6 +1433,7 @@ def main():
             bugfix=dict(required=False, type='bool', default=False),
             enable_plugin=dict(type='list', default=[]),
             disable_plugin=dict(type='list', default=[]),
+            force_basic_auth=dict(type='bool', default=False),
         ),
         required_one_of=[['name', 'list']],
         mutually_exclusive=[['name', 'list']],
