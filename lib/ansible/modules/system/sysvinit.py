@@ -155,7 +155,7 @@ def main():
 
     # locate binaries for service management
     paths = ['/sbin', '/usr/sbin', '/bin', '/usr/bin']
-    binaries = ['chkconfig', ' update-rc.d', 'insserv', 'service']
+    binaries = ['chkconfig', 'update-rc.d', 'insserv', 'service']
 
     # Keeps track of the service status for various runlevels because we can
     # operate on multiple runlevels at once
@@ -221,6 +221,7 @@ def main():
         if not worked:
             # hail mary
             if rc == 0:
+                is_started = True
                 worked = True
             # ps for luck, can only assure positive match
             elif get_ps(module, name):

@@ -280,7 +280,7 @@ class Eapi:
 
         return response
 
-    def run_commands(self, commands):
+    def run_commands(self, commands, check_rc=True):
         """Runs list of commands on remote device and returns results
         """
         output = None
@@ -382,7 +382,11 @@ class Eapi:
             commands = ['configure session %s' % session, 'abort']
             self.send_request(commands)
             err = response['error']
-            self._module.fail_json(msg=err['message'], code=err['code'])
+            error_text = []
+            for data in err['data']:
+                error_text.extend(data.get('errors', []))
+            error_text = '\n'.join(error_text) or err['message']
+            self._module.fail_json(msg=error_text, code=err['code'])
 
         commands = ['configure session %s' % session, 'show session-config diffs']
         if commit:
@@ -431,9 +435,9 @@ def get_config(module, flags=None):
     return conn.get_config(flags)
 
 
-def run_commands(module, commands):
+def run_commands(module, commands, check_rc=True):
     conn = get_connection(module)
-    return conn.run_commands(to_command(module, commands))
+    return conn.run_commands(to_command(module, commands), check_rc)
 
 
 def load_config(module, config, commit=False, replace=False):

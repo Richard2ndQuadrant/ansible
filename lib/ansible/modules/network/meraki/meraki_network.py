@@ -91,18 +91,43 @@ RETURN = r'''
 data:
     description: Information about the created or manipulated object.
     returned: info
-    type: list
-    sample:
-        [
-            {
-                "id": "N_12345",
-                "name": "YourNetwork",
-                "organizationId": "0987654321",
-                "tags": " production ",
-                "timeZone": "America/Chicago",
-                "type": "switch"
-            }
-        ]
+    type: complex
+    contains:
+      id:
+        description: Identification string of network.
+        returned: success
+        type: string
+        sample: N_12345
+      name:
+        description: Written name of network.
+        returned: success
+        type: string
+        sample: YourNet
+      organizationId:
+        description: Organization ID which owns the network.
+        returned: success
+        type: string
+        sample: 0987654321
+      tags:
+        description: Space delimited tags assigned to network.
+        returned: success
+        type: string
+        sample: " production wireless "
+      timeZone:
+        description: Timezone where network resides.
+        returned: success
+        type: string
+        sample: America/Chicago
+      type:
+        description: Functional type of network.
+        returned: success
+        type: string
+        sample: switch
+      disableMyMerakiCom:
+        description: States whether U(my.meraki.com) and other device portals should be disabled.
+        returned: success
+        type: bool
+        sample: true
 '''
 
 import os
@@ -227,6 +252,16 @@ def main():
                 meraki.result['changed'] = True
             else:
                 net = meraki.get_net(meraki.params['org_name'], meraki.params['net_name'], data=nets)
+                proposed = payload
+                if meraki.params['timezone']:
+                    proposed['timeZone'] = meraki.params['timezone']
+                else:
+                    proposed['timeZone'] = 'America/Los_Angeles'
+                if not meraki.params['tags']:
+                    proposed['tags'] = None
+                if not proposed['type']:
+                    proposed['type'] = net['type']
+
                 if meraki.is_update_required(net, payload):
                     path = meraki.construct_path('update',
                                                  net_id=meraki.get_net_id(net_name=meraki.params['net_name'], data=nets)
