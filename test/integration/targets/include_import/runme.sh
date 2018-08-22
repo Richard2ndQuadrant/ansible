@@ -63,3 +63,17 @@ ANSIBLE_STRATEGY='linear' ansible-playbook test_grandparent_inheritance.yml -i .
 # undefined_var
 ANSIBLE_STRATEGY='linear' ansible-playbook undefined_var/playbook.yml  -i ../../inventory "$@"
 ANSIBLE_STRATEGY='free' ansible-playbook undefined_var/playbook.yml  -i ../../inventory "$@"
+
+# Include path inheritance using host var for include file path
+ANSIBLE_STRATEGY='linear' ansible-playbook include_path_inheritance/playbook.yml  -i ../../inventory "$@"
+ANSIBLE_STRATEGY='free' ansible-playbook include_path_inheritance/playbook.yml  -i ../../inventory "$@"
+
+# include_ + apply (explicit inheritance)
+ANSIBLE_STRATEGY='linear' ansible-playbook apply/include_apply.yml -i ../../inventory "$@" --tags foo
+set +e
+OUT=$(ANSIBLE_STRATEGY='linear' ansible-playbook apply/import_apply.yml -i ../../inventory "$@" --tags foo 2>&1 | grep 'ERROR! Invalid options for import_tasks: apply')
+set -e
+if [[ -z "$OUT" ]]; then
+    echo "apply on import_tasks did not cause error"
+    exit 1
+fi
