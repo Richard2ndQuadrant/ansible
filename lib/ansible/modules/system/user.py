@@ -22,6 +22,15 @@ notes:
     they generally come pre-installed with the system and Ansible will require they
     are present at runtime. If they are not, a descriptive error message will be shown.
   - For Windows targets, use the M(win_user) module instead.
+  - On SunOS platforms, the shadow file is backed up automatically since this module edits it directly.
+    On other platforms, the shadow file is backed up by the underlying tools used by this module.
+  - On macOS, this module uses C(dscl) to create, modify, and delete accounts. C(dseditgroup) is used to
+    modify group membership. Accounts are hidden from the login window by modifying
+    C(/Library/Preferences/com.apple.loginwindow.plist).
+  - On FreeBSD, this module uses C(pw useradd) and C(chpass) to create, C(pw usermod) and C(chpass) to modify,
+    C(pw userdel) remove, C(pw lock) to lock, and C(pw unlock) to unlock accounts.
+  - On all other platforms, this module uses C(useradd) to create, C(usermod) to modify, and
+    C(userdel) to remove accounts.
 description:
     - Manage user accounts and user attributes.
     - For Windows targets, use the M(win_user) module instead.
@@ -41,7 +50,7 @@ options:
         required: false
         type: bool
         description:
-            - Darwin/OS X only, optionally hide the user from the login window and system preferences.
+            - macOS only, optionally hide the user from the login window and system preferences.
             - The default will be 'True' if the I(system) option is used.
         version_added: "2.6"
     non_unique:
@@ -74,8 +83,10 @@ options:
     shell:
         description:
             - Optionally set the user's shell.
-            - On Mac OS X, before version 2.5, the default shell for non-system users was /usr/bin/false.
-              Since 2.5, the default shell for non-system users on Mac OS X is /bin/bash.
+            - On macOS, before version 2.5, the default shell for non-system users was /usr/bin/false.
+              Since 2.5, the default shell for non-system users on macOS is /bin/bash.
+            - On other operating systems, the default shell is determined by the underlying tool being
+              used. See Notes for details.
     home:
         description:
             - Optionally set the user's home directory.
@@ -86,7 +97,7 @@ options:
     password:
         description:
             - Optionally set the user's password to this crypted value.
-            - On Darwin/OS X systems, this value has to be cleartext. Beware of security issues.
+            - On macOS systems, this value has to be cleartext. Beware of security issues.
             - See U(https://docs.ansible.com/ansible/faq.html#how-do-i-generate-crypted-passwords-for-the-user-module)
               for details on various ways to generate these password values.
     state:
@@ -343,13 +354,16 @@ import errno
 import grp
 import os
 import platform
+import pty
 import pwd
+import select
 import shutil
 import socket
+import subprocess
 import time
 import re
 
-from ansible.module_utils._text import to_native
+from ansible.module_utils._text import to_native, to_bytes, to_text
 from ansible.module_utils.basic import load_platform_subclass, AnsibleModule
 
 try:
@@ -810,13 +824,58 @@ class User(object):
         cmd.append(self.ssh_comment)
         cmd.append('-f')
         cmd.append(ssh_key_file)
-        cmd.append('-N')
         if self.ssh_passphrase is not None:
-            cmd.append(self.ssh_passphrase)
+            if self.module.check_mode:
+                self.module.debug('In check mode, would have run: "%s"' % cmd)
+                return (0, '', '')
+
+            master_in_fd, slave_in_fd = pty.openpty()
+            master_out_fd, slave_out_fd = pty.openpty()
+            master_err_fd, slave_err_fd = pty.openpty()
+            env = os.environ.copy()
+            env['LC_ALL'] = 'C'
+            try:
+                p = subprocess.Popen([to_bytes(c) for c in cmd],
+                                     stdin=slave_in_fd,
+                                     stdout=slave_out_fd,
+                                     stderr=slave_err_fd,
+                                     preexec_fn=os.setsid,
+                                     env=env)
+                out_buffer = b''
+                err_buffer = b''
+                while p.poll() is None:
+                    r, w, e = select.select([master_out_fd, master_err_fd], [], [], 1)
+                    first_prompt = b'Enter passphrase (empty for no passphrase):'
+                    second_prompt = b'Enter same passphrase again'
+                    prompt = first_prompt
+                    for fd in r:
+                        if fd == master_out_fd:
+                            chunk = os.read(master_out_fd, 10240)
+                            out_buffer += chunk
+                            if prompt in out_buffer:
+                                os.write(master_in_fd, to_bytes(self.ssh_passphrase, errors='strict') + b'\r')
+                                prompt = second_prompt
+                        else:
+                            chunk = os.read(master_err_fd, 10240)
+                            err_buffer += chunk
+                            if prompt in err_buffer:
+                                os.write(master_in_fd, to_bytes(self.ssh_passphrase, errors='strict') + b'\r')
+                                prompt = second_prompt
+                        if b'Overwrite (y/n)?' in out_buffer or b'Overwrite (y/n)?' in err_buffer:
+                            # The key was created between us checking for existence and now
+                            return (None, 'Key already exists', '')
+
+                rc = p.returncode
+                out = to_native(out_buffer)
+                err = to_native(err_buffer)
+            except OSError as e:
+                return (1, '', to_native(e))
         else:
+            cmd.append('-N')
             cmd.append('')
 
-        (rc, out, err) = self.execute_command(cmd)
+            (rc, out, err) = self.execute_command(cmd)
+
         if rc == 0 and not self.module.check_mode:
             # If the keys were successfully created, we should be able
             # to tweak ownership.
@@ -1704,7 +1763,7 @@ class SunOS(User):
 
 class DarwinUser(User):
     """
-    This is a Darwin Mac OS X User manipulation class.
+    This is a Darwin macOS User manipulation class.
     Main differences are that Darwin:-
       - Handles accounts in a database managed by dscl(1)
       - Has no useradd/groupadd

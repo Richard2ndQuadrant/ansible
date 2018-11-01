@@ -2,6 +2,167 @@
 Ansible 2.6 "Heartbreaker" Release Notes
 ========================================
 
+v2.6.7
+======
+
+Release Summary
+---------------
+
+| Release Date: 2018-10-31
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`_
+
+
+Bugfixes
+--------
+
+- user module - do not pass ssh_key_passphrase on cmdline (CVE-2018-16837)
+
+v2.6.6
+======
+
+Release Summary
+---------------
+
+| Release Date: 2018-10-19
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`_
+
+
+Minor Changes
+-------------
+
+- win_nssm - Drop support of literal YAML dictionnary for ``app_parameters`` option. Use the ``key=value;`` string form instead
+
+Bugfixes
+--------
+
+- Ignore empty result of rabbitmqctl list_user_permissions.
+- In systemd module, fix check if a systemd+initd service is enabled - disabled in systemd means disabled
+- Update callbacks to use Ansible's JSON encoder to avoid known serialization issues
+- blockinfile - use bytes rather than a native string to prevent a stacktrace in Python 3 when writing to the file (https://github.com/ansible/ansible/issues/46237)
+- docker_container - ``publish_ports: all`` was not used correctly when checking idempotency.
+- docker_container - fix idempotency check for published_ports in some special cases.
+- docker_container - the behavior is improved in case ``image`` is not specified, but needed for (re-)creating the container.
+- dynamic includes - Use the copied and merged task for calculating task vars in the free strategy (https://github.com/ansible/ansible/issues/47024)
+- fix flatten to properly handle multiple lists in lists https://github.com/ansible/ansible/issues/46343
+- lineinfile - fix index out of range error when using insertbefore on a file with only one line (https://github.com/ansible/ansible/issues/46043)
+- os_router - ``enable_snat: no`` was ignored.
+- route53 - fix CAA record ordering for idempotency.
+- use proper module_util to get Ansible version for Azure requests
+- user - add documentation on what underlying tools are used on each platform (https://github.com/ansible/ansible/issues/44266)
+- win_nssm - Add missing space between parameters with ``app_parameters``
+- win_nssm - Correctly escape argument line when a parameter contains spaces, quotes or backslashes
+- win_nssm - Fix error when several services were given to the ``dependencies`` option
+- win_nssm - Fix extra space added in argument line with ``app_parameters`` or ``app_parameters_free_form`` when a parameter start by a dash and is followed by a period (https://github.com/ansible/ansible/issues/44079)
+- win_nssm - Fix service not started when ``state=started`` (https://github.com/ansible/ansible/issues/35442)
+- win_nssm - Fix several issues and idempotency problems (https://github.com/ansible/ansible/pull/44755)
+
+v2.6.5
+======
+
+Release Summary
+---------------
+
+| Release Date: 2018-09-28
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`_
+
+
+Bugfixes
+--------
+
+- Add ambiguous command check as the error message is not persistent on nexus devices (https://github.com/ansible/ansible/pull/45337).
+- Ansible JSON Decoder - Switch from decode to object_hook to support nested use of __ansible_vault and __ansible_unsafe (https://github.com/ansible/ansible/pull/45514)
+- Don't parse parameters and options when ``state`` is ``absent`` (https://github.com/ansible/ansible/pull/45700).
+- Fix python2.6 `nothing to repeat` nxos terminal plugin bug (https://github.com/ansible/ansible/pull/45271).
+- Fix referenced before assignment in sysvinit module
+- PLUGIN_FILTERS_CFG - Ensure that the value is treated as type=path, and that we use the standard section of ``defaults`` instead of ``default`` (https://github.com/ansible/ansible/pull/45994)
+- The patch fixing the regression of no longer preferring matching security groups in the same VPC https://github.com/ansible/ansible/pull/45787 (which was also backported to 2.6) broke EC2-Classic accounts. https://github.com/ansible/ansible/pull/46242 removes the assumption that security groups must be in a VPC.
+- azure_rm_deployment - fixed regression that prevents resource group from being created (https://github.com/ansible/ansible/issues/45941)
+- chroot connection - Support empty files with copying to target (https://github.com/ansible/ansible/issues/36725)
+- cloudfront - fix bug when CloudFrontOriginAccessIdentityList is missing (https://github.com/ansible/ansible/pull/44984)
+- docker connection - Support empty files with copying to target (https://github.com/ansible/ansible/issues/36725)
+- docker_container - Fix idempotency problems with ``cap_drop`` and ``groups`` (when numeric group IDs were used).
+- docker_container - Fix type conversion errors for ``log_options``.
+- docker_container - Fixing various comparison/idempotency problems related to wrong comparisons. In particular, comparisons for ``command`` and ``entrypoint`` (both lists) no longer ignore missing elements during idempotency checks.
+- docker_container - Makes ``blkio_weight``, ``cpuset_mems``, ``dns_opts`` and ``uts`` options actually work.
+- ec2_group - Sanitize the ingress and egress rules before operating on them by flattening any lists within lists describing the target CIDR(s) into a list of strings. Prior to Ansible 2.6 the ec2_group module accepted a list of strings, a list of lists, or a combination of strings and lists within a list. https://github.com/ansible/ansible/pull/45594
+- ec2_group - There can be multiple security groups with the same name in different VPCs. Prior to 2.6 if a target group name was provided, the group matching the name and VPC had highest precedence. Restore this behavior by updated the dictionary with the groups matching the VPC last.
+- fetch_url did not always return lower-case header names in case of HTTP errors (https://github.com/ansible/ansible/pull/45628).
+- fix nxos_facts indefinite hang for text based output (https://github.com/ansible/ansible/pull/45845).
+- get_url - Don't re-download files unnecessarily when force=no (https://github.com/ansible/ansible/issues/45491)
+- jail connection - Support empty files with copying to target (https://github.com/ansible/ansible/issues/36725)
+- kubectl connection - Support empty files with copying to target (https://github.com/ansible/ansible/issues/36725)
+- libvirt_lxc connection - Support empty files with copying to target (https://github.com/ansible/ansible/issues/36725)
+- loop - Ensure that a loop with a when condition that evaluates to false and delegate_to, will short circuit if the loop references an undefined variable. This matches the behavior in the same scenario without delegate_to (https://github.com/ansible/ansible/issues/45189)
+- mysql_*, proxysql_* - PyMySQL (a pure-Python MySQL driver) is now a preferred dependency also supporting Python 3.X.
+- powershell - Fix issue where setting ANSIBLE_KEEP_REMOTE_FILES fails when using Python 2.6 - https://github.com/ansible/ansible/issues/45490
+- script inventory plugin - Don't pass file_name to DataLoader.load, which will prevent misleading error messages (https://github.com/ansible/ansible/issues/34164)
+- ssh connection - Support empty files with piped transfer_method (https://github.com/ansible/ansible/issues/45426)
+- vyos_facts - fix vyos_facts not returning version number issue (https://github.com/ansible/ansible/pull/39115)
+- win_copy - Fix issue where the dest return value would be enclosed in single quote when dest is a folder - https://github.com/ansible/ansible/issues/45281
+- win_group_membership - fix intermittent issue where it failed to convert the ADSI object to the .NET object after using it once
+- win_say - fix syntax error in module and get tests working
+- winrm - Only use pexpect for auto kerb auth if it is installed and contains the required kwargs - https://github.com/ansible/ansible/issues/43462
+- zone connection - Support empty files with copying to target (https://github.com/ansible/ansible/issues/36725)
+
+v2.6.4
+======
+
+Release Summary
+---------------
+
+| Release Date: 2018-09-06
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`_
+
+
+Minor Changes
+-------------
+
+- add azure_rm_storageaccount support to StorageV2 kind. (https://github.com/ansible/ansible/pull/44242)
+- import_tasks - Do not allow import_tasks to transition to dynamic if the file is missing (https://github.com/ansible/ansible/issues/44822)
+
+Bugfixes
+--------
+
+- Add md5sum check in nxos_file_copy module (https://github.com/ansible/ansible/pull/43423).
+- Allow arbitrary ``log_driver`` for docker_container (https://github.com/ansible/ansible/pull/33579).
+- Fix Python2.6 regex bug terminal plugin nxos, iosxr (https://github.com/ansible/ansible/pull/45135).
+- Fix check_mode in nxos_static_route module (https://github.com/ansible/ansible/pull/44252).
+- Fix glob path of rc.d Some distribtuions like SUSE has the rc%.d directories under /etc/init.d
+- Fix network config diff issue for lines (https://github.com/ansible/ansible/pull/43889)
+- Fixed an issue where ``ansible_facts.pkg_mgr`` would incorrectly set to ``zypper`` on Debian/Ubuntu systems that happened to have the command installed.
+- The docker_* modules respect the DOCKER_* environment variables again (https://github.com/ansible/ansible/pull/42641).
+- The fix for `CVE-2018-10875 <https://access.redhat.com/security/cve/cve-2018-10875>`_ prints out a warning message about skipping a config file from a world writable current working directory.  However, if the user is in a world writable current working directory which does not contain a config file, it should not print a warning message.  This release fixes that extaneous warning.
+- To resolve nios_network issue where vendor-encapsulated-options can not have a use_option flag. (https://github.com/ansible/ansible/pull/43925)
+- To resolve the issue of handling exception for Nios lookup gracefully. (https://github.com/ansible/ansible/pull/44078)
+- always correctly template no log for tasks https://github.com/ansible/ansible/issues/43294
+- ansible-galaxy - properly list all roles in roles_path (https://github.com/ansible/ansible/issues/43010)
+- basic.py - catch ValueError in case a FIPS enabled platform raises this exception - https://github.com/ansible/ansible/issues/44447
+- docker_container: fixing ``working_dir`` idempotency problem (https://github.com/ansible/ansible/pull/42857)
+- docker_container: makes unit parsing for memory sizes more consistent, and fixes idempotency problem when ``kernel_memory`` is set (see https://github.com/ansible/ansible/pull/16748 and https://github.com/ansible/ansible/issues/42692)
+- fix  example code for AWS lightsail documentation
+- fix the enable_snat parameter that is only supposed to be used by an user with the right policies. https://github.com/ansible/ansible/pull/44418
+- fixes docker_container check and debug mode (https://github.com/ansible/ansible/pull/42380)
+- improves docker_container idempotency (https://github.com/ansible/ansible/pull/44808)
+- ios_l2_interface - fix bug when list of vlans ends with comma (https://github.com/ansible/ansible/pull/43879)
+- ios_l2_interface - fix issue with certain interface types (https://github.com/ansible/ansible/pull/43819)
+- ios_user - fix unable to delete user admin issue (https://github.com/ansible/ansible/pull/44904)
+- ios_vlan - fix unable to work on certain interface types issue (https://github.com/ansible/ansible/pull/43819)
+- nxos_facts test lldp feature and fix nxapi check_rc (https://github.com/ansible/ansible/pull/44104).
+- nxos_interface port-channel idempotence fix for mode (https://github.com/ansible/ansible/pull/44248).
+- nxos_linkagg mode fix (https://github.com/ansible/ansible/pull/44294).
+- nxos_system idempotence fix (https://github.com/ansible/ansible/pull/44752).
+- nxos_vlan refactor to support non structured output (https://github.com/ansible/ansible/pull/43805).
+- one_host - fixes settings via environment variables (https://github.com/ansible/ansible/pull/44568)
+- use retry_json nxos_banner (https://github.com/ansible/ansible/pull/44376).
+- user - Strip trailing comments in /etc/default/passwd (https://github.com/ansible/ansible/pull/43931)
+- user - when creating a new user without an expiration date, properly set no expiration rather that expirining the account (https://github.com/ansible/ansible/issues/44155)
+- win_domain_computer - fixed deletion of computer active directory object that have dependent objects (https://github.com/ansible/ansible/pull/44500)
+- win_domain_computer - fixed error in diff_support
+- win_domain_computer - fixed error when description parameter is empty (https://github.com/ansible/ansible/pull/44054)
+- win_psexec - changed code to not escape the command option when building the args - https://github.com/ansible/ansible/issues/43839
+- win_uri -- Fix support for JSON output when charset is set
+- win_wait_for - fix issue where timeout doesn't wait unless state=drained - https://github.com/ansible/ansible/issues/43446
+
 v2.6.3
 ======
 

@@ -46,7 +46,7 @@ import re
 import shlex
 
 from ansible.errors import AnsibleError
-from ansible.module_utils._text import to_text
+from ansible.module_utils._text import to_native, to_text
 from ansible.plugins.shell import ShellBase
 
 
@@ -1926,7 +1926,7 @@ class ShellModule(ShellBase):
         path = '\\'.join(parts)
         if path.startswith('~'):
             return path
-        return '\'%s\'' % path
+        return path
 
     def get_remote_filename(self, pathname):
         # powershell requires that script files end with .ps1
@@ -2028,7 +2028,7 @@ class ShellModule(ShellBase):
 
         # non-pipelining
 
-        cmd_parts = shlex.split(cmd, posix=False)
+        cmd_parts = shlex.split(to_native(cmd), posix=False)
         cmd_parts = list(map(to_text, cmd_parts))
         if shebang and shebang.lower() == '#!powershell':
             if not self._unquote(cmd_parts[0]).lower().endswith('.ps1'):

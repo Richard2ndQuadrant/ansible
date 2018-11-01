@@ -412,3 +412,104 @@ releases:
     - vars_prompt-allow-prompting-for-play-vars.yaml
     - win_domain_controller-netlogon.yaml
     release_date: '2018-08-16'
+  2.6.4:
+    codename: Heartbreaker
+    fragments:
+    - 16748-docker_container-memory.yaml
+    - 33579-docker_container-log_driver.yaml
+    - 42380-docker_container-check-mode.yaml
+    - 42641-44812-docker-env-variables.yaml
+    - 42857-docker_container-working_dir.yaml
+    - 43931-strip-trailing-comments.yml
+    - 44054--win_domain_computer.yaml
+    - 44500-win_domain_computer.yaml
+    - 44808-docker_container-idempotency.yaml
+    - aws_lightsail_documentation_fix.yml
+    - azure_rm_storageaccount.yaml
+    - fips_md5_import.yaml
+    - fix-os_router.yaml
+    - fix_ios_l2_interface.yaml
+    - fix_ios_l2_interface_vlan.yaml
+    - fix_ios_user.yaml
+    - fix_ios_vlan_interface_issue.yaml
+    - fix_no_log_loop.yml
+    - galaxy_list_all_roles.yaml
+    - more-world-readable-warning-skips.yaml
+    - network_config_diff_fix.yml
+    - nios_lookup_handle_exception.yaml
+    - nios_network_vendor_specfic_dhcp_fix.yaml
+    - no-dynamic-import-tasks.yaml
+    - nxos_banner_text.yaml
+    - nxos_file_copy_md5sum.yaml
+    - nxos_interface.yaml
+    - nxos_linkagg.yaml
+    - nxos_non_structured_output_fix.yaml
+    - nxos_static_route_fix.yaml
+    - nxos_system.yaml
+    - one_host-env-fix.yml
+    - service.yml
+    - terminal_plugin.yaml
+    - user-properly-unexpire-new-user.yaml
+    - v2.6.4_summary.yaml
+    - win_psexec_command_arg.yaml
+    - win_uri-json.yml
+    - win_wait_for-timeout.yaml
+    - zypper-on-ubuntu.yaml
+    release_date: '2018-09-06'
+  2.6.5:
+    codename: Heartbreaker
+    fragments:
+    - 45203-sysvinit-fix-unassigned-variable.yml
+    - 45628-fetch_url-error-headers.yaml
+    - 45700-docker_container-dont-parse-absent.yml
+    - ajson-nested-decode.yaml
+    - azure_rm_deployment_fix_45941.yaml
+    - dd-put-empty-files.yaml
+    - docker_container-idempotency.yaml
+    - ec2_group_fix_target_containing_list_within_list.yaml
+    - fix_44984.yaml
+    - fix_ec2_group_target_vpc_precedence.yaml
+    - fix_ec2_group_vpc_precedence_classic.yaml
+    - fix_vyos_facts.yaml
+    - get-url-fix-idempotency.yaml
+    - loop_undefined_delegate_to.yaml
+    - mysql-migrate_to_pymysql.yaml
+    - nxos_ambiguous_command_check.yaml
+    - nxos_facts_26.yaml
+    - nxos_terminal_plugin.yaml
+    - piped-transfer-empty-files.yaml
+    - plugin-filters-cfg.yaml
+    - script-module-no-file-path.yaml
+    - v2.6.5_summary.yaml
+    - win_copy-dest-quote.yaml
+    - win_group_membership-com-marshal.yaml
+    - win_keep_remote_file_python26.yaml
+    - win_say-fix.yaml
+    - winrm_pexpect.yaml
+    release_date: '2018-09-28'
+  2.6.6:
+    codename: Heartbreaker
+    fragments:
+    - 34863-rabbitmq_user_unpack_fix.yaml
+    - 44755-win_nssm_fixes.yaml
+    - 45921-os_router-ignores-enable_snat-no.yml
+    - 46049-route53-caa-ordering.txt
+    - 46245-systemd-fix-service-enable-logic.yaml
+    - 46322-docker_container-image-not-given.yaml
+    - 46594-docker_container-publish-all-ports.yml
+    - 46595-docker_container-expected_ports.yml
+    - azure-version.yaml
+    - blockinfile-bytes-fix.yaml
+    - callback_fixes.yml
+    - fix_flatten.yml
+    - free-strategy-include-var-tags.yaml
+    - lineinfile-insertbefore-index-out-of-range.yaml
+    - user-docs-underlying-tools.yaml
+    - v2.6.6_summary.yaml
+    release_date: '2018-10-19'
+  2.6.7:
+    codename: Heartbreaker
+    fragments:
+    - user-do-not-pass-ssh_key_passphrase-on-cmdline.yaml
+    - v2.6.7_summary.yaml
+    release_date: '2018-10-31'
