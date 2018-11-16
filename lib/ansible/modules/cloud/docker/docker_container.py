@@ -213,7 +213,7 @@ options:
   memory_swappiness:
     description:
         - Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
-    default: 0
+        - If not set, the value will be remain the same if container exists and will be inherited from the host machine if it is (re-)created.
   name:
     description:
       - Assign a name to a new container or match an existing container.
@@ -255,7 +255,8 @@ options:
     default: 'no'
   pid_mode:
     description:
-      - Set the PID namespace mode for the container. Currently only supports 'host'.
+      - Set the PID namespace mode for the container.
+      - Note that docker-py < 2.0 only supports 'host'. Newer versions allow all values supported by the docker daemon.
   privileged:
     description:
       - Give extended privileges to the container.
@@ -618,7 +619,11 @@ import shlex
 from distutils.version import LooseVersion
 
 from ansible.module_utils.basic import human_to_bytes
-from ansible.module_utils.docker_common import HAS_DOCKER_PY_2, HAS_DOCKER_PY_3, AnsibleDockerClient, DockerBaseClass, sanitize_result
+from ansible.module_utils.docker_common import (
+    HAS_DOCKER_PY_2, HAS_DOCKER_PY_3, AnsibleDockerClient,
+    DockerBaseClass, sanitize_result,
+    compare_generic,
+)
 from ansible.module_utils.six import string_types
 
 try:
@@ -627,8 +632,9 @@ try:
         from docker.types import Ulimit, LogConfig
     else:
         from docker.utils.types import Ulimit, LogConfig
+    from docker.errors import APIError, NotFound
     from ansible.module_utils.docker_common import docker_version
-except:
+except Exception as dummy:
     # missing docker-py handled in ansible.module_utils.docker
     pass
 
@@ -770,6 +776,8 @@ class TaskParameters(DockerBaseClass):
         self.log_config = self._parse_log_config()
         self.exp_links = None
         self.volume_binds = self._get_volume_binds(self.volumes)
+        self.pid_mode = self._replace_container_names(self.pid_mode)
+        self.ipc_mode = self._replace_container_names(self.ipc_mode)
 
         self.log("volumes:")
         self.log(self.volumes, pretty_print=True)
@@ -1200,6 +1208,24 @@ class TaskParameters(DockerBaseClass):
             self.fail("Error getting network id for %s - %s" % (network_name, str(exc)))
         return network_id
 
+    def _replace_container_names(self, mode):
+        """
+        Parse IPC and PID modes. If they contain a container name, replace
+        with the container's ID.
+        """
+        if mode is None or not mode.startswith('container:'):
+            return mode
+        container_name = mode[len('container:'):]
+        # Try to inspect container to see whether this is an ID or a
+        # name (and in the latter case, retrieve it's ID)
+        container = self.client.get_container(container_name)
+        if container is None:
+            # If we can't find the container, issue a warning and continue with
+            # what the user specified.
+            self.client.module.warn('Cannot find a container with name or ID "{0}"'.format(container_name))
+            return mode
+        return 'container:{0}'.format(container['Id'])
+
 
 class Container(DockerBaseClass):
 
@@ -1249,79 +1275,17 @@ class Container(DockerBaseClass):
                 return True
         return False
 
-    def _compare_dict_allow_more_present(self, av, bv):
-        '''
-        Compare two dictionaries for whether every entry of the first is in the second.
-        '''
-        for key, value in av.items():
-            if key not in bv:
-                return False
-            if bv[key] != value:
-                return False
-        return True
+    @property
+    def paused(self):
+        if self.container and self.container.get('State'):
+            return self.container['State'].get('Paused', False)
+        return False
 
     def _compare(self, a, b, compare):
         '''
         Compare values a and b as described in compare.
         '''
-        method = compare['comparison']
-        if method == 'ignore':
-            return True
-        # If a or b is None:
-        if a is None or b is None:
-            # If both are None: equality
-            if a == b:
-                return True
-            # Otherwise, not equal for values, and equal
-            # if the other is empty for set/list/dict
-            if compare['type'] == 'value':
-                return False
-            return len(b if a is None else a) == 0
-        # Do proper comparison (both objects not None)
-        if compare['type'] == 'value':
-            return a == b
-        elif compare['type'] == 'list':
-            if method == 'strict':
-                return a == b
-            else:
-                set_a = set(a)
-                set_b = set(b)
-                return set_b >= set_a
-        elif compare['type'] == 'dict':
-            if method == 'strict':
-                return a == b
-            else:
-                return self._compare_dict_allow_more_present(a, b)
-        elif compare['type'] == 'set':
-            set_a = set(a)
-            set_b = set(b)
-            if method == 'strict':
-                return set_a == set_b
-            else:
-                return set_b >= set_a
-        elif compare['type'] == 'set(dict)':
-            for av in a:
-                found = False
-                for bv in b:
-                    if self._compare_dict_allow_more_present(av, bv):
-                        found = True
-                        break
-                if not found:
-                    return False
-            if method == 'strict':
-                # If we would know that both a and b do not contain duplicates,
-                # we could simply compare len(a) to len(b) to finish this test.
-                # We can assume that b has no duplicates (as it is returned by
-                # docker), but we don't know for a.
-                for bv in b:
-                    found = False
-                    for av in a:
-                        if self._compare_dict_allow_more_present(av, bv):
-                            found = True
-                            break
-                    if not found:
-                        return False
-            return True
+        return compare_generic(a, b, compare['comparison'], compare['type'])
 
     def has_different_configuration(self, image):
         '''
@@ -1871,6 +1835,21 @@ class ContainerManager(DockerBaseClass):
                 self.container_stop(container.Id)
                 container = self._get_container(container.Id)
 
+            if state == 'started' and container.paused != self.parameters.paused:
+                if not self.check_mode:
+                    try:
+                        if self.parameters.paused:
+                            self.client.pause(container=container.Id)
+                        else:
+                            self.client.unpause(container=container.Id)
+                    except Exception as exc:
+                        self.fail("Error %s container %s: %s" % (
+                            "pausing" if self.parameters.paused else "unpausing", container.Id, str(exc)
+                        ))
+                    container = self._get_container(container.Id)
+                self.results['changed'] = True
+                self.results['actions'].append(dict(set_paused=self.parameters.paused))
+
         self.facts = container.raw
 
     def absent(self):
@@ -1961,12 +1940,10 @@ class ContainerManager(DockerBaseClass):
                         self.fail("Error disconnecting container from network %s - %s" % (diff['parameter']['name'],
                                                                                           str(exc)))
             # connect to the network
-            params = dict(
-                ipv4_address=diff['parameter'].get('ipv4_address', None),
-                ipv6_address=diff['parameter'].get('ipv6_address', None),
-                links=diff['parameter'].get('links', None),
-                aliases=diff['parameter'].get('aliases', None)
-            )
+            params = dict()
+            for para in ('ipv4_address', 'ipv6_address', 'links', 'aliases'):
+                if diff['parameter'].get(para):
+                    params[para] = diff['parameter'][para]
             self.results['actions'].append(dict(added_to_network=diff['parameter']['name'], network_parameters=params))
             if not self.check_mode:
                 try:
@@ -2018,13 +1995,16 @@ class ContainerManager(DockerBaseClass):
                     status = self.client.wait(container_id)['StatusCode']
                 else:
                     status = self.client.wait(container_id)
-                config = self.client.inspect_container(container_id)
-                logging_driver = config['HostConfig']['LogConfig']['Type']
-
-                if logging_driver == 'json-file' or logging_driver == 'journald':
-                    output = self.client.logs(container_id, stdout=True, stderr=True, stream=False, timestamps=False)
+                if self.parameters.auto_remove:
+                    output = "Cannot retrieve result as auto_remove is enabled"
                 else:
-                    output = "Result logged using `%s` driver" % logging_driver
+                    config = self.client.inspect_container(container_id)
+                    logging_driver = config['HostConfig']['LogConfig']['Type']
+
+                    if logging_driver == 'json-file' or logging_driver == 'journald':
+                        output = self.client.logs(container_id, stdout=True, stderr=True, stream=False, timestamps=False)
+                    else:
+                        output = "Result logged using `%s` driver" % logging_driver
 
                 if status != 0:
                     self.fail(output, status=status)
@@ -2047,6 +2027,14 @@ class ContainerManager(DockerBaseClass):
         if not self.check_mode:
             try:
                 response = self.client.remove_container(container_id, v=volume_state, link=link, force=force)
+            except NotFound as exc:
+                pass
+            except APIError as exc:
+                if exc.response.status_code == 409 and ('removal of container ' in exc.explanation and
+                                                        ' is already in progress' in exc.explanation):
+                    pass
+                else:
+                    self.fail("Error removing container %s: %s" % (container_id, str(exc)))
             except Exception as exc:
                 self.fail("Error removing container %s: %s" % (container_id, str(exc)))
         return response
@@ -2172,6 +2160,16 @@ class AnsibleDockerClientContainer(AnsibleDockerClient):
         if self.module.params.get("cpuset_mems") is not None and not cpuset_mems_supported:
             self.fail("docker or docker-py version is %s. Minimum version required is 2.3 to set cpuset_mems option. "
                       "If you use the 'docker-py' module, you have to switch to the docker 'Python' package." % (docker_version,))
+
+        ipvX_address_supported = LooseVersion(docker_version) >= LooseVersion('1.9')
+        if not ipvX_address_supported:
+            ipvX_address_used = False
+            for network in self.module.params.get("networks", []):
+                if 'ipv4_address' in network or 'ipv6_address' in network:
+                    ipvX_address_used = True
+            if ipvX_address_used:
+                self.fail("docker or docker-py version is %s. Minimum version required is 1.9 to use "
+                          "ipv4_address or ipv6_address in networks." % (docker_version,))
 
         self.HAS_INIT_OPT = init_supported
         self.HAS_UTS_MODE_OPT = uts_mode_supported
