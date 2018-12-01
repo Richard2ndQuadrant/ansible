@@ -193,7 +193,7 @@ options:
             - Lock the password (usermod -L, pw lock, usermod -C).
               BUT implementation differs on different platforms, this option does not always mean the user cannot login via other methods.
               This option does not disable the user, only lock the password. Do not change the password in the same task.
-              Currently supported on Linux, FreeBSD, DragonFlyBSD, NetBSD.
+              Currently supported on Linux, FreeBSD, DragonFlyBSD, NetBSD, OpenBSD.
         type: bool
         version_added: "2.6"
     local:
@@ -662,7 +662,7 @@ class User(object):
             current_expires = int(self.user_password()[1])
 
             if self.expires < time.gmtime(0):
-                if current_expires > 0:
+                if current_expires >= 0:
                     cmd.append('-e')
                     cmd.append('')
             else:
@@ -670,13 +670,15 @@ class User(object):
                 current_expire_date = time.gmtime(current_expires * 86400)
 
                 # Current expires is negative or we compare year, month, and day only
-                if current_expires <= 0 or current_expire_date[:3] != self.expires[:3]:
+                if current_expires < 0 or current_expire_date[:3] != self.expires[:3]:
                     cmd.append('-e')
                     cmd.append(time.strftime(self.DATE_FORMAT, self.expires))
 
-        if self.password_lock:
+        # Lock if no password or unlocked, unlock only if locked
+        if self.password_lock and not info[1].startswith('!'):
             cmd.append('-L')
-        elif self.password_lock is not None:
+        elif self.password_lock is False and info[1].startswith('!'):
+            # usermod will refuse to unlock a user with no password, module shows 'changed' regardless
             cmd.append('-U')
 
         if self.update_password == 'always' and self.password is not None and info[1] != self.password:
@@ -1136,7 +1138,9 @@ class FreeBsdUser(User):
 
             current_expires = int(self.user_password()[1])
 
-            if self.expires < time.gmtime(0):
+            # If expiration is negative or zero and the current expiration is greater than zero, disable expiration.
+            # In OpenBSD, setting expiration to zero disables expiration. It does not expire the account.
+            if self.expires <= time.gmtime(0):
                 if current_expires > 0:
                     cmd.append('-e')
                     cmd.append('0')
@@ -1168,22 +1172,20 @@ class FreeBsdUser(User):
             return self.execute_command(cmd)
 
         # we have to lock/unlock the password in a distinct command
-        if self.password_lock:
+        if self.password_lock and not info[1].startswith('*LOCKED*'):
             cmd = [
                 self.module.get_bin_path('pw', True),
                 'lock',
-                '-n',
                 self.name
             ]
             if self.uid is not None and info[2] != int(self.uid):
                 cmd.append('-u')
                 cmd.append(self.uid)
             return self.execute_command(cmd)
-        elif self.password_lock is not None:
+        elif self.password_lock is False and info[1].startswith('*LOCKED*'):
             cmd = [
                 self.module.get_bin_path('pw', True),
                 'unlock',
-                '-n',
                 self.name
             ]
             if self.uid is not None and info[2] != int(self.uid):
@@ -1356,6 +1358,11 @@ class OpenBSDUser(User):
                 cmd.append('-L')
                 cmd.append(self.login_class)
 
+        if self.password_lock and not info[1].startswith('*'):
+            cmd.append('-Z')
+        elif self.password_lock is False and info[1].startswith('*'):
+            cmd.append('-U')
+
         if self.update_password == 'always' and self.password is not None \
                 and self.password != '*' and info[1] != self.password:
             cmd.append('-p')
@@ -1516,9 +1523,9 @@ class NetBSDUser(User):
             cmd.append('-p')
             cmd.append(self.password)
 
-        if self.password_lock:
+        if self.password_lock and not info[1].startswith('*LOCKED*'):
             cmd.append('-C yes')
-        elif self.password_lock is not None:
+        elif self.password_lock is False and info[1].startswith('*LOCKED*'):
             cmd.append('-C no')
 
         # skip if no changes to be made
