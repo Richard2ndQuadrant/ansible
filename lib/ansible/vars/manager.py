@@ -217,10 +217,10 @@ class VariableManager:
             all_group = self._inventory.groups.get('all')
             host_groups = sort_groups([g for g in host.get_groups() if g.name not in ['all']])
 
-            def _get_plugin_vars(plugin, path, entities):
+            def _get_plugin_vars(plugin, path, entities, cache=True):
                 data = {}
                 try:
-                    data = plugin.get_vars(self._loader, path, entities)
+                    data = plugin.get_vars(self._loader, path, entities, cache=cache)
                 except AttributeError:
                     try:
                         for entity in entities:
@@ -247,7 +247,7 @@ class VariableManager:
 
                     for plugin in vars_loader.all():
 
-                        data = combine_vars(data, _get_plugin_vars(plugin, inventory_dir, entities))
+                        data = combine_vars(data, _get_plugin_vars(plugin, inventory_dir, entities, cache=use_cache))
                 return data
 
             def _plugins_play(entities):

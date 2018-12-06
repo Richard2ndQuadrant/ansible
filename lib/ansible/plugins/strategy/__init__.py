@@ -979,6 +979,13 @@ class StrategyBase:
                 msg = "facts cleared"
             else:
                 skipped = True
+        elif meta_action == 'reload_vars':
+            if _evaluate_conditional(target_host):
+                for host in self._inventory.get_hosts(iterator._play.hosts):
+                    self._variable_manager.get_vars(host=host, use_cache=False)
+                msg = "vars reloaded"
+            else:
+                skipped = True
         elif meta_action == 'clear_host_errors':
             if _evaluate_conditional(target_host):
                 for host in self._inventory.get_hosts(iterator._play.hosts):
