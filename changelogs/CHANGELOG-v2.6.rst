@@ -2,6 +2,77 @@
 Ansible 2.6 "Heartbreaker" Release Notes
 ========================================
 
+v2.6.12
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-01-17
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- docker_volume - reverted changed behavior of ``force``, which was released in Ansible 2.7.1 to 2.7.5, and Ansible 2.6.8 to 2.6.11. Volumes are now only recreated if the parameters changed **and** ``force`` is set to ``true`` (instead of or). This is the behavior which has been described in the documentation all the time.
+
+Bugfixes
+--------
+
+- This reverts some changes from commit 723daf3. If a line is found in the file, exactly or via regexp matching, it must not be added again. `insertafter`/`insertbefore` options are used only when a line is to be inserted, to specify where it must be added.
+- allow using openstack inventory plugin w/o a cache
+- document old option that was initally missed
+- win_copy - Fix copy of a dir that contains an empty directory - https://github.com/ansible/ansible/issues/50077
+- win_firewall_rule - Remove invalid 'bypass' action
+- win_lineinfile - Fix issue where a malformed json block was returned causing an error
+- win_updates - Correctly report changes on success
+
+v2.6.11
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2018-12-13
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- Fixed typo in ansible-galaxy info command.
+- Update docs and return section of vmware_host_service_facts module.
+
+Bugfixes
+--------
+
+- Added unit test for VMware module_utils.
+- Fix N3K power supply facts (https://github.com/ansible/ansible/pull/49150).
+- Fix NameError nxos_facts (https://github.com/ansible/ansible/pull/48981).
+- Fix VMware module utils for self usage.
+- Fix issues with nxos_install_os module for nxapi (https://github.com/ansible/ansible/pull/48811).
+- Fix lldp and cdp neighbors information (https://github.com/ansible/ansible/pull/48318)(https://github.com/ansible/ansible/pull/48087)(https://github.com/ansible/ansible/pull/49024).
+- Fix nxos_interface and nxos_linkagg Idempotence issue (https://github.com/ansible/ansible/pull/46437).
+- ec2_metadata_facts - Parse IAM role name from the security credential field since the instance profile name is different
+- now no log is being respected on retry and high verbosity.  CVE-2018-16876
+- vmware_host_service_facts - handle exception when service package does not have package name.
+
+v2.6.10
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2018-11-30
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Bugfixes
+--------
+
+- powershell - add ``lib/ansible/executor/powershell`` to the packaging data
+
 v2.6.9
 ======
 

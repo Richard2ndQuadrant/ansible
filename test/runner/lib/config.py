@@ -24,10 +24,9 @@ class EnvironmentConfig(CommonConfig):
     def __init__(self, args, command):
         """
         :type args: any
+        :type command: str
         """
-        super(EnvironmentConfig, self).__init__(args)
-
-        self.command = command
+        super(EnvironmentConfig, self).__init__(args, command)
 
         self.local = args.local is True
 
@@ -133,6 +132,11 @@ class ShellConfig(EnvironmentConfig):
         :type args: any
         """
         super(ShellConfig, self).__init__(args, 'shell')
+
+        self.raw = args.raw  # type: bool
+
+        if self.raw:
+            self.httptester = False
 
 
 class SanityConfig(TestConfig):
