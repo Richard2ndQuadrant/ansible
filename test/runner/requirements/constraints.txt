@@ -1,5 +1,6 @@
 coverage >= 4.2, != 4.3.2 # features in 4.2+ required, avoid known bug in 4.3.2 on python 2.6
 cryptography < 2.2 ; python_version < '2.7' # cryptography 2.2 drops support for python 2.6
+deepdiff < 4.0.0 ; python_version < '3' # deepdiff 4.0.0 and later require python 3
 urllib3 < 1.24 ; python_version < '2.7' # urllib3 1.24 and later require python 2.7 or later
 pywinrm >= 0.3.0 # message encryption support
 astroid == 1.5.3 ; python_version >= '3.5' # newer versions of astroid require newer versions of pylint to avoid bugs
@@ -14,6 +15,7 @@ pycrypto >= 2.6 # Need features found in 2.6 and greater
 ncclient >= 0.5.2 # Need features added in 0.5.2 and greater
 idna < 2.6 # requests requires idna < 2.6, but cryptography will cause the latest version to be installed instead
 paramiko < 2.4.0 ; python_version < '2.7' # paramiko 2.4.0 drops support for python 2.6
+paramiko < 2.5.0 ; python_version >= '2.7' # paramiko 2.5.0 requires cryptography 2.5.0+
 pytest < 3.3.0 ; python_version < '2.7' # pytest 3.3.0 drops support for python 2.6
 ntlm-auth >= 1.0.6 # message encryption support
 requests < 2.20.0 ; python_version < '2.7' # requests 2.20.0 drops support for python 2.6

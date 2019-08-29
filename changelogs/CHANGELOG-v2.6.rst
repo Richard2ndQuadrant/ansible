@@ -2,6 +2,88 @@
 Ansible 2.6 "Heartbreaker" Release Notes
 ========================================
 
+v2.6.19
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-08-15
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Bugfixes
+--------
+
+- resolves CVE-2019-10206, by avoiding templating passwords from prompt as it is probable they have special characters.
+
+v2.6.18
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-07-03
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Bugfixes
+--------
+
+- Handle improper variable substitution that was happening in safe_eval, it was always meant to just do 'type enforcement' and have Jinja2 deal with all variable interpolation. Also see CVE-2019-10156
+
+v2.6.17
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-05-23
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Bugfixes
+--------
+
+- Backport of https://github.com/ansible/ansible/pull/54105, pamd - fix idempotence issue when removing rules
+- Fix unwanted ACLs when using copy module (https://github.com/ansible/ansible/issues/44412)
+- aci modules - Ensure we use native strings for signature
+- win_acl - Fix qualifier parser when using UNC paths - https://github.com/ansible/ansible/issues/55875
+- win_domain - Fix checking for a domain introduced in a recent patch
+
+v2.6.16
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-04-03
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- Catch all connection timeout related exceptions and raise AnsibleConnectionError instead
+
+Bugfixes
+--------
+
+- openssl_publickey - fixed crash on Python 3 when OpenSSH private keys were used with passphrases.
+- slurp - Fix issues when using paths on Windows with glob like characters, e.g. ``[``, ``]``
+- win_acl - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_acl_inheritance - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_certificate_store - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_chocolatey - Fix incompatibilities with the latest release of Chocolatey ``v0.10.12+``
+- win_copy - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_file - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_find - Ensure found files are sorted alphabetically by the path instead of it being random
+- win_find - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_owner - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_tempfile - Always return the full NTFS absolute path and not a DOS 8.3 path.
+- win_user_right - Fix output containing non json data - https://github.com/ansible/ansible/issues/54413
+- windows - Fixed various module utils that did not work with path that had glob like chars
+
 v2.6.15
 =======
 

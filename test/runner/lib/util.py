@@ -9,7 +9,6 @@ import fcntl
 import inspect
 import json
 import os
-import pipes
 import pkgutil
 import random
 import re
@@ -40,6 +39,11 @@ except ImportError:
 
 DOCKER_COMPLETION = {}
 COVERAGE_PATHS = {}  # type: dict[str, str]
+
+try:
+    from shlex import quote as cmd_quote
+except ImportError:
+    from pipes import quote as cmd_quote
 
 
 def get_docker_completion():
@@ -335,7 +339,7 @@ def raw_command(cmd, capture=False, env=None, data=None, cwd=None, explain=False
 
     cmd = list(cmd)
 
-    escaped_cmd = ' '.join(pipes.quote(c) for c in cmd)
+    escaped_cmd = ' '.join(cmd_quote(c) for c in cmd)
 
     display.info('Run command: %s' % escaped_cmd, verbosity=cmd_verbosity, truncate=True)
     display.info('Working directory: %s' % cwd, verbosity=2)
@@ -381,7 +385,10 @@ def raw_command(cmd, capture=False, env=None, data=None, cwd=None, explain=False
 
     if communicate:
         encoding = 'utf-8'
-        data_bytes = data.encode(encoding, 'surrogateescape') if data else None
+        if data is None or isinstance(data, bytes):
+            data_bytes = data
+        else:
+            data_bytes = data.encode(encoding, 'surrogateescape')
         stdout_bytes, stderr_bytes = process.communicate(data_bytes)
         stdout_text = stdout_bytes.decode(encoding, str_errors) if stdout_bytes else u''
         stderr_text = stderr_bytes.decode(encoding, str_errors) if stderr_bytes else u''
@@ -698,7 +705,7 @@ class SubprocessError(ApplicationError):
         :type stderr: str | None
         :type runtime: float | None
         """
-        message = 'Command "%s" returned exit status %s.\n' % (' '.join(pipes.quote(c) for c in cmd), status)
+        message = 'Command "%s" returned exit status %s.\n' % (' '.join(cmd_quote(c) for c in cmd), status)
 
         if stderr:
             message += '>>> Standard Error\n'
