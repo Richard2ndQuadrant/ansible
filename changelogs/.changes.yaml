@@ -345,6 +345,116 @@ releases:
     - win_group_membership-sid-bugfix.yml
     - wrcwd_ansible.cfg.yml
     release_date: '2018-07-05'
+  2.6.10:
+    codename: Heartbreaker
+    fragments:
+    - powershell-bootstrap.yaml
+    - v2.6.10_summary.yaml
+    release_date: '2018-11-30'
+  2.6.11:
+    codename: Heartbreaker
+    fragments:
+    - 45155-vmware-handle_exception.yaml
+    - 45155-vmware_host_service_facts-update_docs.yaml
+    - 47313-vmware-fix_module_error.yaml
+    - 49096-ansible-galaxy-fix_info_typo.yaml
+    - 49113-iam-role-arn-parsing-updated.yml
+    - avoid_ssh_retry_discolsures.yml
+    - nxos_facts_multiple_bugfixes.yaml
+    - nxos_install_os_nxapi_fix.yaml
+    - nxos_interface_linkagg_idempotence.yaml
+    - v2.6.11_summary.yaml
+    release_date: '2018-12-13'
+  2.6.12:
+    codename: Heartbreaker
+    fragments:
+    - 49409-lineinfile_must_not_insert_lines_multiples_times_with_insertbefore_insertafter.yml
+    - 50143-win_firewall_rule-invalid-bypass.yml
+    - 50185-win_updates-report-changes-correctly.yml
+    - acl_doc_fix.yml
+    - docker_volume-force-change-detection-revert.yaml
+    - openstack_inventory_fix.yml
+    - v2.6.12_summary.yaml
+    - win_copy-empty-dir.yaml
+    - win_lineinfile-output.yaml
+    release_date: '2019-01-17'
+  2.6.13:
+    codename: Heartbreaker
+    fragments:
+    - fix_pull_extra.yml
+    - junos_commit_error_fix.yaml
+    - ssh_connection_invalid_password.yaml
+    - systemd-warn-on-chroot.yaml
+    - v2.6.13_summary.yaml
+    - vmware_guest-documentation_fix.yaml
+    - win_power_plan-windows10.yaml
+    release_date: '2019-02-07'
+  2.6.14:
+    codename: Heartbreaker
+    fragments:
+    - 45378-fix-sql-tags.yml
+    - 51781-fixing-managed-disk-facts.yaml
+    - 52130-win_psmodule-update_nuget.yaml
+    - 52388-postgresqldatabase-fix-force-update.yml
+    - 52389-mysqldatabase-fix-force-update.yaml
+    - disallow-relative-homedir.yaml
+    - v2.6.14_summary.yaml
+    - win-become-elevation.yaml
+    - winrm-ansible-conn-error.yaml
+    release_date: '2019-02-21'
+  2.6.15:
+    codename: Heartbreaker
+    fragments:
+    - 40092-mysql_user-match-backticks.yml
+    - aws_ec2_inventory_integration_tests.yaml
+    - to_yaml-default_flow_style.yaml
+    - v2.6.15_summary.yaml
+    - win_domain-cred.yaml
+    - win_file-hidden.yaml
+    - winrm-send-input-check.yaml
+    - zypper-python3.yaml
+    release_date: '2019-03-14'
+  2.6.16:
+    codename: Heartbreaker
+    fragments:
+    - 54192-openssl_publickey-openssh-passphrase.yml
+    - v2.6.16_summary.yaml
+    - win_acl-paths.yaml
+    - win_acl_inheritance-paths.yaml
+    - win_certificate_store-paths.yaml
+    - win_chocolatey-update.yaml
+    - win_copy-paths.yaml
+    - win_file-paths.yaml
+    - win_find-paths.yaml
+    - win_mod_utils-paths.yaml
+    - win_owner-paths.yaml
+    - win_slurp-paths.yaml
+    - win_tempfile-path.yaml
+    - win_user_right-output.yaml
+    - winrm-all-timeout-exceptions.yaml
+    release_date: '2019-04-03'
+  2.6.17:
+    codename: Heartbreaker
+    fragments:
+    - 44412-copy-fix-unwanted-acls.yaml
+    - 55150-native-strings-for-signature-auth.yaml
+    - pamd-make-idempotence-fix.yaml
+    - v2.6.17_summary.yaml
+    - win_acl-network.yaml
+    - win_domain-setup.yaml
+    release_date: '2019-05-23'
+  2.6.18:
+    codename: Heartbreaker
+    fragments:
+    - fix_safe_eval.yml
+    - v2.6.18_summary.yaml
+    release_date: '2019-07-03'
+  2.6.19:
+    codename: Heartbreaker
+    fragments:
+    - dont_template_passwords_from_prompt.yml
+    - v2.6.19_summary.yaml
+    release_date: '2019-08-15'
   2.6.2:
     codename: Heartbreaker
     fragments:

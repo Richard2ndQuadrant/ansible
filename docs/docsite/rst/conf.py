@@ -127,6 +127,24 @@ html_theme_path = ['../_themes']
 html_theme = 'sphinx_rtd_theme'
 html_short_title = 'Ansible Documentation'
 
+html_theme_options = {
+    'canonical_url': "https://docs.ansible.com/ansible/latest/",
+    'collapse_navigation': "True",
+    'vcs_pageview_mode': 'edit'
+}
+
+html_context = {
+    'display_github': 'True',
+    'github_user': 'ansible',
+    'github_repo': 'ansible',
+    'github_version': 'devel/docs/docsite/rst/',
+    'github_module_version': 'devel/lib/ansible/modules/',
+    'current_version': version,
+    'latest_version': '2.8',
+    # list specifically out of order to make latest work
+    'available_versions': ('latest', '2.7', '2.6', 'devel')
+}
+
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
 # given in html_static_path.

@@ -1,5 +1,5 @@
-Sanity Tests » integration-aliases
-==================================
+integration-aliases
+===================
 
 Integration tests are executed by ``ansible-test`` and reside in directories under ``test/integration/targets/``.
 Each test MUST have an ``aliases`` file to control test execution.
@@ -43,6 +43,11 @@ Aliases can be used to skip platforms using one of the following:
 - ``skip/osx`` - Skip tests on macOS / OS X.
 - ``skip/rhel`` - Skip tests on RHEL.
 - ``skip/docker`` - Skip tests when running on a Docker container
+
+Platform versions, as specified using the ``--remote`` option with ``/`` removed, can also be skipped:
+
+- ``skip/freebsd11.1`` - Skip tests on FreeBSD 11.1.
+- ``skip/rhel7.6`` - Skip tests on RHEL 7.6.
 
 Aliases can be used to skip Python major versions using one of the following:
 

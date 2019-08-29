@@ -2,6 +2,235 @@
 Ansible 2.6 "Heartbreaker" Release Notes
 ========================================
 
+v2.6.19
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-08-15
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Bugfixes
+--------
+
+- resolves CVE-2019-10206, by avoiding templating passwords from prompt as it is probable they have special characters.
+
+v2.6.18
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-07-03
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Bugfixes
+--------
+
+- Handle improper variable substitution that was happening in safe_eval, it was always meant to just do 'type enforcement' and have Jinja2 deal with all variable interpolation. Also see CVE-2019-10156
+
+v2.6.17
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-05-23
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Bugfixes
+--------
+
+- Backport of https://github.com/ansible/ansible/pull/54105, pamd - fix idempotence issue when removing rules
+- Fix unwanted ACLs when using copy module (https://github.com/ansible/ansible/issues/44412)
+- aci modules - Ensure we use native strings for signature
+- win_acl - Fix qualifier parser when using UNC paths - https://github.com/ansible/ansible/issues/55875
+- win_domain - Fix checking for a domain introduced in a recent patch
+
+v2.6.16
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-04-03
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- Catch all connection timeout related exceptions and raise AnsibleConnectionError instead
+
+Bugfixes
+--------
+
+- openssl_publickey - fixed crash on Python 3 when OpenSSH private keys were used with passphrases.
+- slurp - Fix issues when using paths on Windows with glob like characters, e.g. ``[``, ``]``
+- win_acl - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_acl_inheritance - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_certificate_store - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_chocolatey - Fix incompatibilities with the latest release of Chocolatey ``v0.10.12+``
+- win_copy - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_file - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_find - Ensure found files are sorted alphabetically by the path instead of it being random
+- win_find - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_owner - Fix issues when using paths with glob like characters, e.g. ``[``, ``]``
+- win_tempfile - Always return the full NTFS absolute path and not a DOS 8.3 path.
+- win_user_right - Fix output containing non json data - https://github.com/ansible/ansible/issues/54413
+- windows - Fixed various module utils that did not work with path that had glob like chars
+
+v2.6.15
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-03-14
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- ``to_yaml`` filter updated to maintain formatting consistency when used with ``pyyaml`` versions 5.1 and later (https://github.com/ansible/ansible/pull/53772)
+
+Bugfixes
+--------
+
+- inventory_aws_ec2 - fix no_log indentation so AWS temporary credentials aren't displayed in tests
+- mysql_user: match backticks, single and double quotes when checking user privileges.
+- win_domain - Do not fail if DC is already promoted but a reboot is required, return ``reboot_required: True``
+- win_domain - Fix when running without credential delegated authentication - https://github.com/ansible/ansible/issues/53182
+- win_file - Fix issue when managing hidden files and directories - https://github.com/ansible/ansible/issues/42466
+- winrm - attempt to recover from a WinRM send input failure if possible
+- zypper - Fix Python 3 compatibility issues
+
+v2.6.14
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-02-21
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- Raise AnsibleConnectionError on winrm connnection errors
+
+Bugfixes
+--------
+
+- azure_rm_managed_disk_facts - added missing implementation of listing managed disks by resource group
+- azure_rm_postgresqldatabase - fix force_update bug (https://github.com/ansible/ansible/issues/50978).
+- azure_rm_postgresqldatabase - fix force_update bug.
+- azure_rm_sqlserver - fix for tags support
+- remote home directory - Disallow use of remote home directories that include relative pathing by means of `..` (CVE-2019-3828) (https://github.com/ansible/ansible/pull/52133)
+- win become - Fix some scenarios where become failed to create an elevated process
+- win_psmodule - the NuGet package provider will be updated, if needed, to avoid issue under adding a repository
+
+v2.6.13
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-02-07
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- Fixed typo in vmware documentation fragment. Changed "supported added" to "support added".
+
+Bugfixes
+--------
+
+- Fix mandatory statement error for junos modules (https://github.com/ansible/ansible/pull/50138)
+- fix ansible-pull hanlding of extra args, complex quoting is needed for inline JSON
+- ssh connection - do not retry with invalid credentials to prevent account lockout (https://github.com/ansible/ansible/issues/48422)
+- systemd - warn when exeuting in a chroot environment rather than failing (https://github.com/ansible/ansible/pull/43904)
+- win_power_plan - Fix issue where win_power_plan failed on newer Windows 10 builds - https://github.com/ansible/ansible/issues/43827
+
+v2.6.12
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2019-01-17
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- docker_volume - reverted changed behavior of ``force``, which was released in Ansible 2.7.1 to 2.7.5, and Ansible 2.6.8 to 2.6.11. Volumes are now only recreated if the parameters changed **and** ``force`` is set to ``true`` (instead of or). This is the behavior which has been described in the documentation all the time.
+
+Bugfixes
+--------
+
+- This reverts some changes from commit 723daf3. If a line is found in the file, exactly or via regexp matching, it must not be added again. `insertafter`/`insertbefore` options are used only when a line is to be inserted, to specify where it must be added.
+- allow using openstack inventory plugin w/o a cache
+- document old option that was initally missed
+- win_copy - Fix copy of a dir that contains an empty directory - https://github.com/ansible/ansible/issues/50077
+- win_firewall_rule - Remove invalid 'bypass' action
+- win_lineinfile - Fix issue where a malformed json block was returned causing an error
+- win_updates - Correctly report changes on success
+
+v2.6.11
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2018-12-13
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- Fixed typo in ansible-galaxy info command.
+- Update docs and return section of vmware_host_service_facts module.
+
+Bugfixes
+--------
+
+- Added unit test for VMware module_utils.
+- Fix N3K power supply facts (https://github.com/ansible/ansible/pull/49150).
+- Fix NameError nxos_facts (https://github.com/ansible/ansible/pull/48981).
+- Fix VMware module utils for self usage.
+- Fix issues with nxos_install_os module for nxapi (https://github.com/ansible/ansible/pull/48811).
+- Fix lldp and cdp neighbors information (https://github.com/ansible/ansible/pull/48318)(https://github.com/ansible/ansible/pull/48087)(https://github.com/ansible/ansible/pull/49024).
+- Fix nxos_interface and nxos_linkagg Idempotence issue (https://github.com/ansible/ansible/pull/46437).
+- ec2_metadata_facts - Parse IAM role name from the security credential field since the instance profile name is different
+- now no log is being respected on retry and high verbosity.  CVE-2018-16876
+- vmware_host_service_facts - handle exception when service package does not have package name.
+
+v2.6.10
+=======
+
+Release Summary
+---------------
+
+| Release Date: 2018-11-30
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Bugfixes
+--------
+
+- powershell - add ``lib/ansible/executor/powershell`` to the packaging data
+
 v2.6.9
 ======
 

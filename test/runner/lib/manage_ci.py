@@ -3,7 +3,6 @@
 from __future__ import absolute_import, print_function
 
 import os
-import pipes
 import tempfile
 import time
 
@@ -14,6 +13,7 @@ from lib.util import (
     ApplicationError,
     run_command,
     intercept_command,
+    cmd_quote,
 )
 
 from lib.core_ci import (
@@ -22,6 +22,10 @@ from lib.core_ci import (
 
 from lib.ansible_util import (
     ansible_environment,
+)
+
+from lib.config import (
+    ShellConfig,
 )
 
 
@@ -101,7 +105,7 @@ class ManageWindowsCI(object):
             options.append('-tt')
 
         if isinstance(command, list):
-            command = ' '.join(pipes.quote(c) for c in command)
+            command = ' '.join(cmd_quote(c) for c in command)
 
         run_command(self.core_ci.args,
                     ['ssh', '-q'] + self.ssh_args +
@@ -203,6 +207,11 @@ class ManagePosixCI(object):
     def setup(self):
         """Start instance and wait for it to become ready and respond to an ansible ping."""
         self.wait()
+
+        if isinstance(self.core_ci.args, ShellConfig):
+            if self.core_ci.args.raw:
+                return
+
         self.configure()
         self.upload_source()
 
@@ -258,14 +267,14 @@ class ManagePosixCI(object):
             options = []
 
         if isinstance(command, list):
-            command = ' '.join(pipes.quote(c) for c in command)
+            command = ' '.join(cmd_quote(c) for c in command)
 
         run_command(self.core_ci.args,
                     ['ssh', '-tt', '-q'] + self.ssh_args +
                     options +
                     ['-p', str(self.core_ci.connection.port),
                      '%s@%s' % (self.core_ci.connection.username, self.core_ci.connection.hostname)] +
-                    self.become + [pipes.quote(command)])
+                    self.become + [cmd_quote(command)])
 
     def scp(self, src, dst):
         """

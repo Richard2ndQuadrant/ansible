@@ -11,7 +11,6 @@ import tempfile
 import time
 import textwrap
 import functools
-import pipes
 import sys
 import hashlib
 import difflib
@@ -55,6 +54,7 @@ from lib.util import (
     generate_pip_command,
     find_python,
     get_docker_completion,
+    cmd_quote,
 )
 
 from lib.docker_util import (
@@ -161,6 +161,10 @@ def install_command_requirements(args, python_version=None):
     :type args: EnvironmentConfig
     :type python_version: str | None
     """
+    if isinstance(args, ShellConfig):
+        if args.raw:
+            return
+
     generate_egg_info(args)
 
     if not args.requirements:
@@ -206,7 +210,7 @@ def install_command_requirements(args, python_version=None):
         return  # no changes means no conflicts
 
     raise ApplicationError('Conflicts detected in requirements. The following commands reported changes during verification:\n%s' %
-                           '\n'.join((' '.join(pipes.quote(c) for c in cmd) for cmd in changes)))
+                           '\n'.join((' '.join(cmd_quote(c) for c in cmd) for cmd in changes)))
 
 
 def run_pip_commands(args, pip, commands, detect_pip_changes=False):
@@ -573,9 +577,9 @@ def command_windows_integration(args):
                     manage = ManageWindowsCI(remote)
                     manage.upload("test/runner/setup/windows-httptester.ps1", watcher_path)
 
-                    # need to use -Command as we cannot pass an array of values with -File
-                    script = "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command .\\%s -Hosts %s" \
-                             % (watcher_path, ", ".join(HTTPTESTER_HOSTS))
+                    # We cannot pass an array of string with -File so we just use a delimiter for multiple values
+                    script = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\%s -Hosts \"%s\"" \
+                             % (watcher_path, "|".join(HTTPTESTER_HOSTS))
                     if args.verbosity > 3:
                         script += " -Verbose"
                     manage.ssh(script, options=ssh_options, force_pty=False)
@@ -590,7 +594,7 @@ def command_windows_integration(args):
                 for remote in [r for r in remotes if r.version != '2008']:
                     # delete the tmp file that keeps the http-tester alive
                     manage = ManageWindowsCI(remote)
-                    manage.ssh("del %s /F /Q" % watcher_path)
+                    manage.ssh("cmd.exe /c \"del %s /F /Q\"" % watcher_path, force_pty=False)
 
             watcher_path = "ansible-test-http-watcher-%s.ps1" % time.time()
             pre_target = forward_ssh_ports
@@ -1627,6 +1631,13 @@ def get_integration_remote_filter(args, targets):
         exclude.append(skip)
         display.warning('Excluding tests marked "%s" which are not supported on %s: %s'
                         % (skip.rstrip('/'), platform, ', '.join(skipped)))
+
+    skip = 'skip/%s/' % args.remote.replace('/', '')
+    skipped = [target.name for target in targets if skip in target.aliases]
+    if skipped:
+        exclude.append(skip)
+        display.warning('Excluding tests marked "%s" which are not supported on %s: %s'
+                        % (skip.rstrip('/'), args.remote.replace('/', ' '), ', '.join(skipped)))
 
     python_version = 2  # remotes are expected to default to python 2
 
