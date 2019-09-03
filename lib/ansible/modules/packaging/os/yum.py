@@ -1638,6 +1638,7 @@ def main():
     #   list=pkgspec
 
     yumdnf_argument_spec['argument_spec']['use_backend'] = dict(default='auto', choices=['auto', 'yum', 'yum4', 'dnf'])
+    yumdnf_argument_spec['argument_spec']['force_basic_auth'] = force_basic_auth=dict(type='bool', default=False)
 
     module = AnsibleModule(
         **yumdnf_argument_spec
