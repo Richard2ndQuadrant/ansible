@@ -81,8 +81,9 @@ class ActionModule(ActionBase):
 
         def raw_test(connect_timeout):
             display.vvv("wait_for_ssh: attempting raw test")
-            raw_result = self._low_level_execute_command('echo pong')
-            if raw_result['stdout'].strip() != 'pong':
+            pong = 'pong %s' % (int(time.time()))
+            raw_result = self._low_level_execute_command('echo %s' % pong)
+            if pong not in raw_result['stdout_lines']:
                 raise Exception('raw test failed')
 
         start = datetime.now()
