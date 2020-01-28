@@ -513,12 +513,17 @@ def connect_to_api(module, disconnect_atexit=True):
     if validate_certs and not hasattr(ssl, 'SSLContext'):
         module.fail_json(msg='pyVim does not support changing verification mode with python < 2.7.9. Either update '
                              'python or use validate_certs=false.')
-
-    ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    if validate_certs:
+    elif validate_certs:
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         ssl_context.verify_mode = ssl.CERT_REQUIRED
         ssl_context.check_hostname = True
         ssl_context.load_default_certs()
+    elif hasattr(ssl, 'SSLContext'):
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        ssl_context.verify_mode = ssl.CERT_NONE
+        ssl_context.check_hostname = False
+    else:  # Python < 2.7.9 or RHEL/Centos < 7.4
+        ssl_context = None
 
     service_instance = None
     try:
@@ -1210,6 +1215,52 @@ class PyVmomi(object):
             if dsc.name == datastore_cluster_name:
                 return dsc
         return None
+
+    # Resource pool
+    def find_resource_pool_by_name(self, resource_pool_name, folder=None):
+        """
+        Get resource pool managed object by name
+        Args:
+            resource_pool_name: Name of resource pool
+
+        Returns: Resource pool managed object if found else None
+
+        """
+        if not folder:
+            folder = self.content.rootFolder
+
+        resource_pools = get_all_objs(self.content, [vim.ResourcePool], folder=folder)
+        for rp in resource_pools:
+            if rp.name == resource_pool_name:
+                return rp
+        return None
+
+    def find_resource_pool_by_cluster(self, resource_pool_name='Resources', cluster=None):
+        """
+        Get resource pool managed object by cluster object
+        Args:
+            resource_pool_name: Name of resource pool
+            cluster: Managed object of cluster
+
+        Returns: Resource pool managed object if found else None
+
+        """
+        desired_rp = None
+        if not cluster:
+            return desired_rp
+
+        if resource_pool_name != 'Resources':
+            # Resource pool name is different than default 'Resources'
+            resource_pools = cluster.resourcePool.resourcePool
+            if resource_pools:
+                for rp in resource_pools:
+                    if rp.name == resource_pool_name:
+                        desired_rp = rp
+                        break
+        else:
+            desired_rp = cluster.resourcePool
+
+        return desired_rp
 
     # VMDK stuff
     def vmdk_disk_path_split(self, vmdk_path):

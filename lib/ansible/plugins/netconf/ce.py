@@ -36,6 +36,11 @@ try:
 except (ImportError, AttributeError):  # paramiko and gssapi are incompatible and raise AttributeError not ImportError
     HAS_NCCLIENT = False
 
+try:
+    from lxml.etree import fromstring
+except ImportError:
+    from xml.etree.ElementTree import fromstring
+
 
 class Netconf(NetconfBase):
 
@@ -50,14 +55,26 @@ class Netconf(NetconfBase):
     def get_device_info(self):
         device_info = dict()
         device_info['network_os'] = 'ce'
-        ele = new_ele('get-software-information')
-        data = self.execute_rpc(to_xml(ele))
-        reply = to_ele(to_bytes(data, errors='surrogate_or_strict'))
-        sw_info = reply.find('.//software-information')
+        filter_xml = '''<filter type="subtree">
+                          <system xmlns="http://www.huawei.com/netconf/vrp" content-version="1.0" format-version="1.0">
+                            <systemInfo>
+                              <sysName></sysName>
+                              <sysContact></sysContact>
+                              <productVer></productVer>
+                              <platformVer></platformVer>
+                              <productName></productName>
+                            </systemInfo>
+                          </system>
+                        </filter>'''
+        data = self.get(filter_xml)
+        data = re.sub(r'xmlns=".+?"', r'', data)
+        reply = fromstring(to_bytes(data, errors='surrogate_or_strict'))
+        sw_info = reply.find('.//systemInfo')
 
-        device_info['network_os_version'] = self.get_text(sw_info, 'ce-version')
-        device_info['network_os_hostname'] = self.get_text(sw_info, 'host-name')
-        device_info['network_os_model'] = self.get_text(sw_info, 'product-model')
+        device_info['network_os_version'] = self.get_text(sw_info, 'productVer')
+        device_info['network_os_hostname'] = self.get_text(sw_info, 'sysName')
+        device_info['network_os_platform_version'] = self.get_text(sw_info, 'platformVer')
+        device_info['network_os_platform'] = self.get_text(sw_info, 'productName')
 
         return device_info
 
@@ -164,6 +181,9 @@ class Netconf(NetconfBase):
     @ensure_connected
     def get(self, *args, **kwargs):
         try:
+            if_rpc_reply = kwargs.pop('if_rpc_reply', False)
+            if if_rpc_reply:
+                return self.m.get(*args, **kwargs).xml
             return self.m.get(*args, **kwargs).data_xml
         except RPCError as exc:
             raise Exception(to_xml(exc.xml))
@@ -207,3 +227,19 @@ class Netconf(NetconfBase):
     @ensure_connected
     def discard_changes(self, *args, **kwargs):
         return self.m.discard_changes(*args, **kwargs).data_xml
+
+    @ensure_ncclient
+    @ensure_connected
+    def dispatch_rpc(self, rpc_command=None, source=None, filter=None):
+        """
+        Execute rpc on the remote device eg. dispatch('get-next')
+        :param rpc_command: specifies rpc command to be dispatched either in plain text or in xml element format (depending on command)
+        :param source: name of the configuration datastore being queried
+        :param filter: specifies the portion of the configuration to retrieve (by default entire configuration is retrieved)
+        :return: Returns xml string containing the rpc-reply response received from remote host
+        """
+        if rpc_command is None:
+            raise ValueError('rpc_command value must be provided')
+        resp = self.m.dispatch(fromstring(rpc_command), source=source, filter=filter)
+        # just return rpc-reply xml
+        return resp.xml

@@ -65,8 +65,8 @@ ansible_facts:
   description: Returns the facts collected from the FlashArray
   returned: always
   type: complex
-  contains:
-        "capacity": {}
+  sample: {
+        "capacity": {},
         "config": {
             "directory_service": {
                 "array_admin_group": null,
@@ -131,7 +131,7 @@ ansible_facts:
                 "valid_to": "2027-08-09T23:09:06Z"
             },
             "syslog": []
-        }
+        },
         "default": {
             "array_name": "flasharray1",
             "connected_arrays": 1,
@@ -142,8 +142,8 @@ ansible_facts:
             "purity_version": "5.0.4",
             "snapshots": 1,
             "volume_groups": 2
-        }
-        "hgroups": {}
+        },
+        "hgroups": {},
         "hosts": {
             "host1": {
                 "hgroup": null,
@@ -176,13 +176,13 @@ ansible_facts:
                     "10000000C96C48D2"
                 ]
             }
-        }
+        },
         "interfaces": {
             "CT0.ETH4": "iqn.2010-06.com.purestorage:flasharray.2111b767484e4682",
             "CT0.ETH5": "iqn.2010-06.com.purestorage:flasharray.2111b767484e4682",
             "CT1.ETH4": "iqn.2010-06.com.purestorage:flasharray.2111b767484e4682",
             "CT1.ETH5": "iqn.2010-06.com.purestorage:flasharray.2111b767484e4682"
-        }
+        },
         "network": {
             "ct0.eth0": {
                 "address": "10.10.10.10",
@@ -250,7 +250,7 @@ ansible_facts:
                 ],
                 "speed": 1000000000
             }
-        }
+        },
         "offload": {
             "nfstarget": {
                 "address": "10.0.2.53",
@@ -259,7 +259,7 @@ ansible_facts:
                 "protocol": "nfs",
                 "status": "scanning"
             }
-        }
+        },
         "performance": {
             "input_per_sec": 8191,
             "output_per_sec": 0,
@@ -269,7 +269,7 @@ ansible_facts:
             "usec_per_read_op": 0,
             "usec_per_write_op": 642,
             "writes_per_sec": 2
-        }
+        },
         "pgroups": {
             "consisgroup-07b6b983-986e-46f5-bdc3-deaa3dbb299e-cinder": {
                 "hgroups": null,
@@ -280,7 +280,7 @@ ansible_facts:
                     "volume-1"
                 ]
             }
-        }
+        },
         "pods": {
             "srm-pod": {
                 "arrays": [
@@ -299,22 +299,22 @@ ansible_facts:
                 ],
                 "source": null
             }
-        }
+        },
         "snapshots": {
             "consisgroup.cgsnapshot": {
                 "created": "2018-03-28T09:34:02Z",
                 "size": 13958643712,
                 "source": "volume-1"
             }
-        }
-        "subnet": {}
+        },
+        "subnet": {},
         "vgroups": {
             "vvol--vSphere-HA-0ffc7dd1-vg": {
                 "volumes": [
                     "vvol--vSphere-HA-0ffc7dd1-vg/Config-aad5d7c6"
                 ]
             }
-        }
+        },
         "volumes": {
             "ansible_data": {
                 "bandwidth": null,
@@ -329,6 +329,7 @@ ansible_facts:
                 "source": null
             }
         }
+    }
 '''
 
 
@@ -336,6 +337,7 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.pure import get_system, purefa_argument_spec
 
 
+ADMIN_API_VERSION = '1.14'
 S3_REQUIRED_API_VERSION = '1.16'
 LATENCY_REQUIRED_API_VERSION = '1.16'
 AC_REQUIRED_API_VERSION = '1.14'
@@ -456,13 +458,15 @@ def generate_config_dict(array):
 
 def generate_admin_dict(array):
     admin_facts = {}
-    admins = array.list_admins()
-    for admin in range(0, len(admins)):
-        admin_name = admins[admin]['name']
-        admin_facts[admin_name] = {
-            'type': admins[admin]['type'],
-            'role': admins[admin]['role'],
-        }
+    api_version = array._list_available_rest_versions()
+    if ADMIN_API_VERSION in api_version:
+        admins = array.list_admins()
+        for admin in range(0, len(admins)):
+            admin_name = admins[admin]['name']
+            admin_facts[admin_name] = {
+                'type': admins[admin]['type'],
+                'role': admins[admin]['role'],
+            }
     return admin_facts
 
 

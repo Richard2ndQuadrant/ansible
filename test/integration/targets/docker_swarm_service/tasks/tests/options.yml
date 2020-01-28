@@ -884,6 +884,7 @@
       timeout: 2s
       interval: 0h0m2s3ms4us
       retries: 2
+      start_period: 20s
   register: healthcheck_1
   ignore_errors: yes
 
@@ -901,6 +902,7 @@
       timeout: 2s
       interval: 0h0m2s3ms4us
       retries: 2
+      start_period: 20s
   register: healthcheck_2
   ignore_errors: yes
 
@@ -1004,12 +1006,12 @@
     - healthcheck_7 is not changed
     - healthcheck_8 is changed
     - healthcheck_9 is not changed
-  when: docker_api_version is version('1.25', '>=') and docker_py_version is version('2.6.0', '>=')
+  when: docker_api_version is version('1.29', '>=') and docker_py_version is version('2.6.0', '>=')
 - assert:
     that:
     - healthcheck_1 is failed
     - "'Minimum version required' in healthcheck_1.msg"
-  when: docker_api_version is version('1.25', '<') or docker_py_version is version('2.6.0', '<')
+  when: docker_api_version is version('1.29', '<') or docker_py_version is version('2.6.0', '<')
 
 ###################################################################
 ## hostname #######################################################
@@ -1590,6 +1592,28 @@
   register: publish_7
   ignore_errors: yes
 
+- name: publish (publishes the same port with both protocols)
+  docker_swarm_service:
+    name: "{{ service_name }}"
+    image: alpine:3.8
+    resolve_image: no
+    command: '/bin/sh -v -c "sleep 10m"'
+    publish:
+      - protocol: udp
+        published_port: 60001
+        target_port: 60001
+        mode: host
+      - protocol: tcp
+        published_port: 60001
+        target_port: 60001
+        mode: host
+  register: publish_8
+  ignore_errors: yes
+- name: gather service info
+  docker_swarm_service_info:
+    name: "{{ service_name }}"
+  register: publish_8_info
+
 - name: cleanup
   docker_swarm_service:
     name: "{{ service_name }}"
@@ -1605,6 +1629,8 @@
       - publish_5 is not changed
       - publish_6 is changed
       - publish_7 is not changed
+      - publish_8 is changed
+      - (publish_8_info.service.Endpoint.Ports | length) == 2
   when: docker_api_version is version('1.25', '>=') and docker_py_version is version('3.0.0', '>=')
 - assert:
     that:

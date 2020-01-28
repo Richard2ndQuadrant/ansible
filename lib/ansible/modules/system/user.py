@@ -57,8 +57,7 @@ options:
     groups:
         description:
             - List of groups user will be added to. When set to an empty string C(''),
-              C(null), or C(~), the user is removed from all groups except the
-              primary group. (C(~) means C(null) in YAML)
+              the user is removed from all groups except the primary group.
             - Before Ansible 2.3, the only input format allowed was a comma separated string.
             - Mutually exclusive with C(local)
         type: list
@@ -93,7 +92,8 @@ options:
             - Optionally set the user's password to this crypted value.
             - On macOS systems, this value has to be cleartext. Beware of security issues.
             - To create a disabled account on Linux systems, set this to C('!') or C('*').
-            - See U(https://docs.ansible.com/ansible/faq.html#how-do-i-generate-crypted-passwords-for-the-user-module)
+            - To create a disabled account on OpenBSD, set this to C('*************').
+            - See U(https://docs.ansible.com/ansible/faq.html#how-do-i-generate-encrypted-passwords-for-the-user-module)
               for details on various ways to generate these password values.
         type: str
     state:
@@ -514,8 +514,8 @@ class User(object):
         if self.module.params['password'] and self.platform != 'Darwin':
             maybe_invalid = False
 
-            # Allow setting the password to * or ! in order to disable the account
-            if self.module.params['password'] in set(['*', '!']):
+            # Allow setting certain passwords in order to disable the account
+            if self.module.params['password'] in set(['*', '!', '*************']):
                 maybe_invalid = False
             else:
                 # : for delimiter, * for disable user, ! for lock user
@@ -2495,29 +2495,31 @@ class AIX(User):
         """
 
         b_name = to_bytes(self.name)
+        b_passwd = b''
+        b_expires = b''
         if os.path.exists(self.SHADOWFILE) and os.access(self.SHADOWFILE, os.R_OK):
             with open(self.SHADOWFILE, 'rb') as bf:
                 b_lines = bf.readlines()
 
             b_passwd_line = b''
             b_expires_line = b''
-            for index, b_line in enumerate(b_lines):
-                # Get password and lastupdate lines which come after the username
-                if b_line.startswith(b'%s:' % b_name):
-                    b_passwd_line = b_lines[index + 1]
-                    b_expires_line = b_lines[index + 2]
-                    break
+            try:
+                for index, b_line in enumerate(b_lines):
+                    # Get password and lastupdate lines which come after the username
+                    if b_line.startswith(b'%s:' % b_name):
+                        b_passwd_line = b_lines[index + 1]
+                        b_expires_line = b_lines[index + 2]
+                        break
 
-            # Sanity check the lines because sometimes both are not present
-            if b' = ' in b_passwd_line:
-                b_passwd = b_passwd_line.split(b' = ', 1)[-1].strip()
-            else:
-                b_passwd = b''
+                # Sanity check the lines because sometimes both are not present
+                if b' = ' in b_passwd_line:
+                    b_passwd = b_passwd_line.split(b' = ', 1)[-1].strip()
 
-            if b' = ' in b_expires_line:
-                b_expires = b_expires_line.split(b' = ', 1)[-1].strip()
-            else:
-                b_expires = b''
+                if b' = ' in b_expires_line:
+                    b_expires = b_expires_line.split(b' = ', 1)[-1].strip()
+
+            except IndexError:
+                self.module.fail_json(msg='Failed to parse shadow file %s' % self.SHADOWFILE)
 
         passwd = to_native(b_passwd)
         expires = to_native(b_expires) or -1
@@ -2786,15 +2788,14 @@ class BusyBox(User):
                             self.module.fail_json(name=self.name, msg=err, rc=rc)
 
         # Manage password
-        if self.password is not None:
-            if info[1] != self.password:
-                cmd = [self.module.get_bin_path('chpasswd', True)]
-                cmd.append('--encrypted')
-                data = '{name}:{password}'.format(name=self.name, password=self.password)
-                rc, out, err = self.execute_command(cmd, data=data)
+        if self.update_password == 'always' and self.password is not None and info[1] != self.password:
+            cmd = [self.module.get_bin_path('chpasswd', True)]
+            cmd.append('--encrypted')
+            data = '{name}:{password}'.format(name=self.name, password=self.password)
+            rc, out, err = self.execute_command(cmd, data=data)
 
-                if rc is not None and rc != 0:
-                    self.module.fail_json(name=self.name, msg=err, rc=rc)
+            if rc is not None and rc != 0:
+                self.module.fail_json(name=self.name, msg=err, rc=rc)
 
         return rc, out, err
 

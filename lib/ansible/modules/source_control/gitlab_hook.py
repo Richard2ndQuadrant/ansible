@@ -26,7 +26,7 @@ author:
   - Guillaume Martinez (@Lunik)
 requirements:
   - python >= 2.7
-  - python-gitlab python module
+  - python-gitlab python module <= 1.12.1
 extends_documentation_fragment:
     - auth_basic
 options:
@@ -190,7 +190,7 @@ class GitLabHook(object):
         self.hookObject = None
 
     '''
-    @param prokect Project Object
+    @param project Project Object
     @param hook_url Url to call on event
     @param description Description of the group
     @param parent Parent group full path
@@ -296,9 +296,11 @@ class GitLabHook(object):
 
 
 def deprecation_warning(module):
-    deprecated_aliases = ['private_token', 'access_token']
+    deprecated_aliases = ['private_token', 'access_token', 'enable_ssl_verification']
 
-    module.deprecate("Aliases \'{aliases}\' are deprecated".format(aliases='\', \''.join(deprecated_aliases)), "2.10")
+    for aliase in deprecated_aliases:
+        if aliase in module.params:
+            module.deprecate("Alias \'{aliase}\' is deprecated".format(aliase=aliase), "2.10")
 
 
 def main():

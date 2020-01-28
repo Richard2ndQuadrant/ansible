@@ -5,6 +5,245 @@ Ansible 2.8 "How Many More Times" Release Notes
 .. contents:: Topics
 
 
+v2.8.8
+======
+
+Release Summary
+---------------
+
+| Release Date: 2020-01-15
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- docker_container.py - update a containers restart_policy without restarting the container (https://github.com/ansible/ansible/issues/65993)
+
+Bugfixes
+--------
+
+- **SECURITY** - CVE-2019-14904 - solaris_zone module accepts zone name and performs actions related to that. However, there is no user input validation done while performing actions. A malicious user could provide a crafted zone name which allows executing commands into the server manipulating the module behaviour. Adding user input validation as per Solaris Zone documentation fixes this issue.
+- CVE-2019-14905 - nxos_file_copy module accepts remote_file parameter which is used for destination name and performs actions related to that on the device using the value of remote_file which is of string type However, there is no user input validation done while performing actions. A malicious code could crafts the filename parameter to take advantage by performing an OS command injection. This fix validates the option value if it is legitimate file path or not.
+- acme_certificate - fix misbehavior when ACME v1 is used with ``modify_account`` set to ``false``.
+- ansible-test no longer tries to install ``coverage`` 5.0+ since those versions are unsupported
+- ansible-test no longer tries to install ``setuptools`` 45+ on Python 2.x since those versions are unsupported
+- ansible-test now ignores warnings when comparing pip versions before and after integration tests run
+- ce modules - Update(add) docs notes to tell user modules work connection.
+- ce modules - Update(add) docs notes to tell user modules work connection.
+- ce modules - Update(add) docs notes to tell user modules work connection.
+- ce modules - Update(add) docs notes to tell user modules work connection.
+- ce modules - Update(add) docs notes to tell user modules work connection.
+- ce modules - Update(add) docs notes to tell user modules work connection.
+- decouple k8s_scale from the k8s module utils so that it doesn't complain about missing arguments
+- dnf module - Ensure the modules exit_json['msg'] response is always string, not sometimes a tuple.
+- docker_container - fix network idempotence comparison error.
+- docker_container - wait for removal of container if docker API returns early (https://github.com/ansible/ansible/issues/65811).
+- docker_network - fix idempotence comparison error.
+- docker_network - fix idempotency for multiple IPAM configs of the same IP version (https://github.com/ansible/ansible/issues/65815).
+- docker_network - validate IPAM config subnet CIDR notation on module setup and not during idempotence checking.
+- docker_swarm_service - fix task always reporting as changed when using ``healthcheck.start_period``.
+- gitlab_runner - fix idempotency for shared runner
+- gitlab_user - Fix adding ssh key to new/changed user and adding group membership for new/changed user
+- netscaler_service - fixed issue preventing use of graceful attribute
+- openssh_keypair - fixes idempotence issue with public key (https://github.com/ansible/ansible/issues/64969).
+- openssl_csr - the module will now enforce that ``privatekey_path`` is specified when ``state=present``.
+- paramiko - catch and handle exception to prevent stack trace when running in FIPS mode
+- plugins-netconf-ce - Fix failed to get version information.
+- roles - Ensure that ``allow_duplicates: true`` enables to run single role multiple times (https://github.com/ansible/ansible/issues/64902)
+- user - on systems using busybox, honor the ``on_changed`` parameter to prevent unnecessary password changing (https://github.com/ansible/ansible/issues/65711)
+- yarn - handle no version when installing module by name (https://github.com/ansible/ansible/issues/55097)
+- yum - gracefully handle failure case of enabling a non existent repo, as the yum cli does (Fixes https://github.com/ansible/ansible/issues/52582)
+- yum - performance bugfix, the YumBase object was being  instantiated multiple times unnecessarily, which lead to considerable overhead when operating against large sets of packages.
+
+v2.8.7
+======
+
+Release Summary
+---------------
+
+| Release Date: 2019-11-13
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- ansible-test - switch from testing RHEL 8.0 and RHEL 8.1 Beta to RHEL 8.1
+
+Bugfixes
+--------
+
+- **security issue** - Ansible: Splunk and Sumologic callback plugins leak sensitive data in logs (CVE-2019-14864)
+- ACME modules: make sure some connection errors are handled properly
+- Ansible.Basic - Fix issue when setting a ``no_log`` parameter to an empty string - https://github.com/ansible/ansible/issues/62613
+- Fix deprecation warning on GitLab modules
+- Fix for performance regression in handler invocation (https://github.com/ansible/ansible/issues/59017)
+- Fix requirements on non required module parameters
+- Remove a temp directory created by wait_for_connection action plugin (https://github.com/ansible/ansible/issues/62407).
+- Remove the unnecessary warning about aptitude not being installed (https://github.com/ansible/ansible/issues/56832).
+- action/ce - fix a bug, some new version os will not discard uncommitted configure with a return directly.(https://github.com/ansible/ansible/pull/63513).
+- ansible-vault - fix error when multiple vault password files are specified (https://github.com/ansible/ansible/issues/57172)
+- ce_acl_interface - update to fix some bugs - Modified the prompt statement when the switch device cannot be configured. (https://github.com/ansible/ansible/pull/64018)
+- ce_config - fixed issue - Re-building commands(config src) by replacing '#' with 'quit','quit' commands may close connection (https://github.com/ansible/ansible/issues/62872)
+- copy - recursive copy with ``remote_src=yes`` now recurses beyond first level. (Fixes https://github.com/ansible/ansible/issues/58284)
+- docker_login - Use ``with`` statement when accessing files, to prevent that invalid JSON output is produced.
+- docker_swarm_service - ``source`` must no longer be specified for ``tmpfs`` mounts.
+- lineinfile - don't attempt mkdirs when path doesn't contain directory path
+- lineinfile - properly handle inserting a line when backrefs are enabled and the line already exists in the file (https://github.com/ansible/ansible/issues/63756)
+- lineinfile - use correct index value when inserting a line at the end of a file (https://github.com/ansible/ansible/issues/63684)
+- openssl_certificate and openssl_csr - fix Ed25519 and Ed448 private key support for ``cryptography`` backend. This probably needs at least cryptography 2.8, since older versions have problems with signing certificates or CSRs with such keys. (https://github.com/ansible/ansible/issues/59039, PR https://github.com/ansible/ansible/pull/63984)
+- openssl_csr - a warning is issued if an unsupported value for ``version`` is used for the ``cryptography`` backend.
+- paramiko_ssh - improve authentication error message so it is less confusing
+- sysctl - fix err referenced before assignment (https://github.com/ansible/ansible/issues/58158)
+- vmware_deploy_ovf - backport content fix from 2.9 (https://github.com/ansible/ansible/pull/59614)
+- win_acl - Fixed error when setting rights on directory for which inheritance from parent directory has been disabled.
+- win_domain_computer - Honour the explicit domain server and credentials when moving or removing a computer object - https://github.com/ansible/ansible/pull/63093
+- win_iis_website - Actually restart the site when ``state=restarted`` - https://github.com/ansible/ansible/issues/63828
+- win_partition - Fix invalid variable name causing a failure on checks - https://github.com/ansible/ansible/issues/62401
+- zabbix_* modules - modules will now properly disconnect existing sessions from Zabbix server (see https://github.com/ansible/ansible/pull/58525)
+
+v2.8.6
+======
+
+Release Summary
+---------------
+
+| Release Date: 2019-10-17
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- ansible-test defaults to redacting sensitive values (disable with the ``--no-redact`` option)
+- dnf - Properly handle idempotent transactions with package name wildcard globs (https://github.com/ansible/ansible/issues/62809)
+
+Bugfixes
+--------
+
+- **SECURITY** - CVE-2019-14846 - Several Ansible plugins could disclose aws credentials in log files.  inventory/aws_ec2.py, inventory/aws_rds.py, lookup/aws_account_attribute.py, and lookup/aws_secret.py, lookup/aws_ssm.py use the boto3 library from the Ansible process. The boto3 library logs credentials at log level DEBUG.  If Ansible's logging was enabled (by setting LOG_PATH to a value) Ansible would set the global log level to DEBUG.  This was inherited by boto and would then log boto credentials to the file specified by LOG_PATH.  This did not affect aws ansible modules as those are executed in a separate process.  This has been fixed by switching to log level INFO
+- **security issue** - Convert CLI provided passwords to text initially, to prevent unsafe context being lost when converting from bytes->text during post processing of PlayContext. This prevents CLI provided passwords from being incorrectly templated (CVE-2019-14856)
+
+- **security issue** - properly hide parameters marked with ``no_log`` in suboptions when invalid parameters are passed to the module (CVE-2019-14858)
+- ACI modules - Fix a whitespace issue in filters for ACI 4.2 strict validation
+- ACME modules: fix bug in ACME v1 account update code
+- ACME modules: support Buypass' ACME v1 endpoint
+- Cloudengine module_utils - the ``set-id`` (RPC-REPLY XML attribute) may change over the time althougth ``set-id`` is the identity of the next RPC packet.
+- Cloudengine netconf plugin - add a dispatch RPC function,just return original RPC-REPLY, the function is used by ``Cloudengine module_utils``.
+- For package_facts, correct information about apt being missing and fix missing attribute.
+- ansible-podman connection plugin - Fix case when mount of podman container fails and files can't be copied to/from container. Also add error handling in case of failed podman commands. (https://github.com/ansible/ansible/issues/57740)
+- ansible-test now updates SSH keys it generates with newer versions of ssh-keygen to function with Paramiko
+- ce_bgp - update to fix some bugs - When the vrf_name parameter is in the module and the configuration is repeatedly sent to the device, the module displays change = True. (https://github.com/ansible/ansible/pull/60573)
+- ce_bgp_af - update to fix some bugs - Add some update statements. (https://github.com/ansible/ansible/pull/62589)
+- ce_bgp_neighbor - update to fix some bugs - Add some update statements. (https://github.com/ansible/ansible/pull/60934)
+- ce_bgp_neighbor_af - update to fix some bugs - Add some update statements. (https://github.com/ansible/ansible/pull/60937)
+- ce_evpn_bgp - update to fix some bugs - Modify the configured query statement and replace get_config with exec_command. (https://github.com/ansible/ansible/pull/61136)
+- ce_evpn_bgp_rr - update to fix some bugs - Modify the configured query statement and replace get_config with exec_command. (https://github.com/ansible/ansible/pull/61168)
+- ce_evpn_global - update to fix some bugs - Modify the configured query statement and replace get_config with exec_command. (https://github.com/ansible/ansible/pull/61013)
+- ce_facts - update to fix some bugs - Modifying regular expression errors. (https://github.com/ansible/ansible/pull/63331)
+- ce_file_copy - update to Compatible with multiple version of NETCONF API(sshServer). (https://github.com/ansible/ansible/pull/59450)
+- ce_info_center_global- update to fix some bugs - Add some update statements. (https://github.com/ansible/ansible/pull/61283)
+- ce_interface_ospf- update to fix some bugs - Add some update statements. (https://github.com/ansible/ansible/pull/61431)
+- ce_link_status - fix some bugs, result of interface <get> operation involves a large amount of data,interact with the device through the <get-next>.(https://github.com/ansible/ansible/pull/62417).
+- ce_mtu- update to fix some bugs - Contrast before and after adding configuration. (https://github.com/ansible/ansible/pull/61442)
+- ce_netstream_aging - Fix bugs(list index out of range).
+- ce_netstream_aging- update to fix some bugs - Modify the configured query statement and replace get_config with exec_command. (https://github.com/ansible/ansible/pull/61653)
+- ce_netstream_export- update to fix some bugs - Modify the configured query statement and replace get_config with exec_command. (https://github.com/ansible/ansible/pull/61652)
+- ce_netstream_global -  Fix bugs(list index out of range and key error).
+- ce_netstream_template - Fix bugs(list index out of range and update commands error).
+- ce_ntp - update to fix some bugs - Add some update statements. (https://github.com/ansible/ansible/pull/61654)
+- ce_ospf - update to fix some bugs - Contrast before and after adding configuration. (https://github.com/ansible/ansible/pull/61684)
+- ce_snmp_target_host - update to fix some bugs - Contrast before and after adding configuration. (https://github.com/ansible/ansible/pull/61842)
+- ce_snmp_traps - update to fix some bugs - Contrast before and after adding configuration. (https://github.com/ansible/ansible/pull/61843)
+- ce_static_route - update to fix some bugs - Add some update statements. (https://github.com/ansible/ansible/pull/62498)
+- ce_stp - update to fix some bugs - Modify the configured query statement and replace get_config with exec_command. (https://github.com/ansible/ansible/pull/61774)
+- ce_vrf_af - update to fix some bugs - Add some update statements. (https://github.com/ansible/ansible/pull/61683)
+- ce_vxlan_arp - update to fix some bugs - Modifying regular expressions. (https://github.com/ansible/ansible/pull/61995)
+- ce_vxlan_vap - update to fix some bugs - Modify the Operator Difference between Python 2 and Python 3. (https://github.com/ansible/ansible/pull/61996)
+- clarify error messages for 'auto' and missing libs, add missing lib msg for rpm.
+- cron and cronvar - use get_bin_path utility to locate the default crontab executable instead of the hardcoded /usr/bin/crontab. (https://github.com/ansible/ansible/pull/59765)
+- cron cronvar - only run ``get_bin_path()`` once
+- cronvar - use correct binary name (https://github.com/ansible/ansible/issues/63274)
+- debug - fixed an issue introduced in Ansible 2.4 where a loop of debug tasks would lose the "changed" status on each item.
+- display - remove leading space when displaying WARNING messages
+- docker_container - fix idempotency for IP addresses for networks. The old implementation checked the effective IP addresses assigned by the Docker daemon, and not the specified ones. This causes idempotency issues for containers which are not running, since they have no effective IP addresses assigned.
+- docker_container - make sure that when image is missing, check mode indicates a change (image will be pulled).
+- docker_image - make sure that deprecated options also emit proper deprecation warnings next to warnings which indicate how to replace them.
+- docker_login - correct broken fix for https://github.com/ansible/ansible/pull/60381 which crashes for Python 3.
+- docker_node_info - improve error handling when service inspection fails, for example because node name being ambiguous (https://github.com/ansible/ansible/issues/63353, PR https://github.com/ansible/ansible/pull/63418).
+- eos_bgp - Fix fetching AS failure if BGP is not already configured (https://github.com/ansible/ansible/pull/58756)
+- facts/virtual
+- firewalld - enable the firewalld module to function offline with firewalld version 0.7.0 and newer (https://github.com/ansible/ansible/issues/63254)
+- get_url - Don't treat no checksum as a checksum match (https://github.com/ansible/ansible/issues/61978)
+- jenkins modules - CSRF handling fixed accordingly the latest updates in Jenkins Security model for versions > 2.173.3
+- junos_user - Add no_log=True to junos_user `encrypted_password` (https://github.com/ansible/ansible/pull/62184)
+- junos_user - fixed issue with adding multiple values for a Junos account with aggregate mode
+- lineinfile - fix bug that caused multiple line insertions (https://github.com/ansible/ansible/issues/58923).
+- mso_schema_template_bd - Fix incorrect payload when setting intersiteBUMTrafficAllow.
+- openssl_certificate - fix ``assertonly`` provider certificate verification, causing 'private key mismatch' and 'subject mismatch' errors.
+- package_facts - use module warnings rather than a custom implementation for reporting warnings
+- plugins-netconf-ce - to get attribute 'set-id' from rpc-reply.
+- psexec - Fix issue where the Kerberos package was not detected as being available.
+- psexec - Fix issue where the ``interactive`` option was not being passed down to the library.
+- rabbitmq lookup plugin - Fix for rabbitmq lookups failing when using pika v1.0.0 and newer.
+- rabbitmq_publish - Fix to ensure the module works correctly for pika v1.0.0 and later. (https://github.com/ansible/ansible/pull/61960)
+- sts_assume_role - fix assertion text in integration test
+- user - fix stack trace on AIX when attempting to parse shadow file that does not exist (https://github.com/ansible/ansible/issues/62510)
+- vmware_deploy_ovf use user specified resource pool or resource pool pod rather than cluster default (https://github.com/ansible/ansible/issues/61645).
+- win_exec_wrapper - Be more defensive when it comes to getting unhandled exceptions
+
+v2.8.5
+======
+
+Release Summary
+---------------
+
+| Release Date: 2019-09-12
+| `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`__
+
+
+Minor Changes
+-------------
+
+- ovirt_vm - add documentation warning about linux boot params - they will not be suported since oVirt 4.4 (https://bugzilla.redhat.com/1732437)
+- ovirt_vm - add warning message about linux boot params - they will not be suported since oVirt 4.4 (https://bugzilla.redhat.com/1732437)
+
+Bugfixes
+--------
+
+- Backported to stable-2.8 - Fix
+- Extended loop variables now work with includes (https://github.com/ansible/ansible/pull/61231)
+- Fix nxos_install_os test cases typo (https://github.com/ansible/ansible/pull/58825).
+- Pipelining now works with the buildah plugin.
+- acme_certificate - improve compatibility when finalizing ACME v2 orders. Fixes problem with Buypass' ACME v2 testing endpoint.
+- apt_facts - fix performance regression when getting facts about apt packages (https://github.com/ansible/ansible/issues/60450)
+- aws_s3 - Try to wait for the bucket to exist before setting the access control list.
+- bigip_monitor_http - fix issue with receive parameter idempotency (https://github.com/ansible/ansible/pull/59999)
+- ce_bfd_global - update to fix some bugs - When BFD is unavailable, tosExp and other parameters are sent down to report errors; this error is corrected and the query results are processed again. (https://github.com/ansible/ansible/pull/60412)
+- constructed - Add a warning for the change in behavior in the sanitization of the groups option.
+- digital_ocean_droplet - Fix creation of DigitalOcean droplets using digital_ocean_droplet module (https://github.com/ansible/ansible/pull/61655)
+- docker_compose - fix issue where docker deprecation warning results in ansible erroneously reporting a failure
+- docker_container - improve error behavior when parsing port ranges fails.
+- docker_login - report change on successful logout (https://github.com/ansible/ansible/issues/59232)
+- docker_swarm_service - allow the same port to be published both with TCP and UDP.
+- meraki_syslog - Module would ignore net_id parameter if passed.
+- meraki_syslog - Properly handle tasks with `net_id` instead of `net_name`.
+- netapp_e_lun_mapping - Fix hosts with same lun number conflict in netapp_e_lun_mapping
+- netapp_e_lun_mapping - Fix netapp_e_host module bug when lun=0
+- openssl_certificate - if both private key and CSR were specified, the idempotency check for ``selfsigned`` and ``ownca`` providers ignored the CSR.
+- os_user - when domain is provided, default_project will be taken from this domain.
+- ovirt_vm - update tempalte search by datacenter (https://github.com/ansible/ansible/issues/59189)
+- proxmox_kvm - fixed issue when vm has not yet a name item (https://github.com/ansible/ansible/issues/58194)
+- purefa_facts - Fix bug which causes module failure when selecting I(admins) or I(all) against an old Purity version
+- systemd - wait for a service which is in deactivating state when using ``state=stopped`` (https://github.com/ansible/ansible/pull/59471)
+- user - allow 13 asterisk characters in password field without warning
+- user - update docs to reflect proper way to remove account from all groups
+- vmware - Ensure we can use the modules with Python < 2.7.9 or RHEL/CentOS < 7.4, this as soon as ``validate_certs`` is disabled.
+- win_domain - Set reboot required dependent on exception and add exception id to error message
+- win_domain_controller - Do not fail the play without the user being able to catch dcpromo failing because of a pending reboot within a playbook using ignore_error or retry logic.
+- xenserver_guest - when adding disks to a VM in powered on state, disks are now properly plugged/activated (https://github.com/ansible/ansible/issues/60693).
+
 v2.8.4
 ======
 
@@ -1662,9 +1901,9 @@ vmware
 xenserver
 ^^^^^^^^^
 
-- xenserver_guest - Manages virtual machines running on Citrix XenServer host or pool
-- xenserver_guest_facts - Gathers facts for virtual machines running on Citrix XenServer host or pool
-- xenserver_guest_powerstate - Manages power states of virtual machines running on Citrix XenServer host or pool
+- xenserver_guest - Manages virtual machines running on Citrix Hypervisor/XenServer host or pool
+- xenserver_guest_facts - Gathers facts for virtual machines running on Citrix Hypervisor/XenServer host or pool
+- xenserver_guest_powerstate - Manages power states of virtual machines running on Citrix Hypervisor/XenServer host or pool
 
 Clustering
 ~~~~~~~~~~
@@ -2075,7 +2314,7 @@ fortios
 - fortios_report_layout - Report layout configuration in Fortinet's FortiOS and FortiGate.
 - fortios_report_setting - Report setting configuration in Fortinet's FortiOS and FortiGate.
 - fortios_report_style - Report style configuration in Fortinet's FortiOS and FortiGate.
-- fortios_report_theme - Report themes configuratio in Fortinet's FortiOS and FortiGate.
+- fortios_report_theme - Report themes configuration in Fortinet's FortiOS and FortiGate.
 - fortios_router_access_list - Configure access lists in Fortinet's FortiOS and FortiGate.
 - fortios_router_auth_path - Configure authentication based routing in Fortinet's FortiOS and FortiGate.
 - fortios_router_bfd - Configure BFD in Fortinet's FortiOS and FortiGate.
