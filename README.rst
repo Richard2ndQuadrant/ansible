@@ -1,5 +1,10 @@
 |PyPI version| |Docs badge| |Chat badge| |Build Status| |Code Of Conduct| |Mailing Lists| |License|
 
+This repository (2ndQuadrant/ansible) contains a version of Ansible,
+currently tracking ansible/ansible:stable-2.8, with some modifications
+maintained by 2ndQuadrant. Unless you have a specific reason to use it,
+please use https://github.com/ansible/ansible instead.
+
 *******
 Ansible
 *******
