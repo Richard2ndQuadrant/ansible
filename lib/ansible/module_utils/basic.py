@@ -825,7 +825,7 @@ class AnsibleModule(object):
             if seenabled is not None:
                 (rc, out, err) = self.run_command(seenabled)
                 if rc == 0:
-                    self.fail_json(msg="Aborting, target uses selinux but python bindings (libselinux-python) aren't installed!")
+                    return True
             return False
         if selinux.is_selinux_enabled() == 1:
             return True
